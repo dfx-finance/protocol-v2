@@ -62,7 +62,7 @@ contract V2Test is Test {
         oracleFactory = new MockOracleFactory();
         oracles.push(
             oracleFactory.newOracle(
-            address(tokens[0]), "goldOracle",9, 20000000000
+            address(tokens[0]), "goldOracle", 9, 20_000_000_000
             )
         );
         oracles.push(IOracle(Mainnet.CHAINLINK_EUR_USD));
@@ -120,15 +120,14 @@ contract V2Test is Test {
         }
         cheats.stopPrank();
     }
-    /**
-    deploy gold,usdc tokens, their price oracles, assimilators & test swap
-    check if v2 factory & it's deployed curve works properly based on both token's price
-    assuming both tokens are foreign stable coins
-    gold usdc ratio is 1 : 20
-     */
+
+    // deploy gold,usdc tokens, their price oracles, assimilators & test swap
+    // check if v2 factory & it's deployed curve works properly based on both token's price
+    // assuming both tokens are foreign stable coins
+    // gold usdc ratio is 1 : 20
     function testDeployTokenAndSwap(uint256 amt) public {
         cheats.assume(amt > 100);
-        cheats.assume(amt < 10000000);
+        cheats.assume(amt < 10_000_000);
 
         // mint gold to trader
         tokens[0].mint(address(accounts[1]), amt * decimals[0]);
@@ -143,7 +142,7 @@ contract V2Test is Test {
 
         // first deposit
         cheats.startPrank(address(accounts[0]));
-        curves[0].deposit(2000000000 * decimals[0], block.timestamp + 60);
+        curves[0].deposit(2_000_000_000 * decimals[0], block.timestamp + 60);
         cheats.stopPrank();
 
         cheats.startPrank(address(accounts[1]));
@@ -163,10 +162,12 @@ contract V2Test is Test {
         // price ratio is 1:20, balance ration also needs to be approx 1:20
         assertApproxEqAbs(noDecGoldBal.mul(20), noDecUsdcBal, noDecUsdcBal.div(100));
     }
-    // // test swap of forex stable coin(euroc, cadc) usdc
+    
+    // test swap of forex stable coin(euroc, cadc) usdc
     function testForeignStableCoinSwap(uint256 amt) public {
         cheats.assume(amt > 100);
-        cheats.assume(amt < 10000000);
+        cheats.assume(amt < 10_000_000);
+
         for(uint256 i = 0; i < 2; ++i){
             // mint token to trader
             deal(address(tokens[i+1]), address(accounts[1]), amt * decimals[i+1]);
@@ -202,12 +203,13 @@ contract V2Test is Test {
         }
     }
 
-    // // checks if directly sending pool tokens, not by calling deposit func of the pool
-    // // see if the pool token total supply is changed
-    // // directly tranferring tokens to the pool shouldn't change the pool total supply
+    // checks if directly sending pool tokens, not by calling deposit func of the pool
+    // see if the pool token total supply is changed
+    // directly tranferring tokens to the pool shouldn't change the pool total supply
     function testTotalSupply(uint256 amount) public {
         cheats.assume(amount > 1);
-        cheats.assume(amount < 10000000);
+        cheats.assume(amount < 10_000_000);
+
         for(uint256 i = 0; i < 3; ++i){
             uint256 originalSupply = curves[i].totalSupply();
             // first stake to get lp tokens
@@ -219,33 +221,36 @@ contract V2Test is Test {
             else
                 deal(address(tokens[i]),address(curves[i]), amount.div(50));
             deal(address(tokens[3]),address(curves[i]), amount.div(50));
+
             uint256 currentLP = curves[i].balanceOf(address(tokens[i]));
-            assertApproxEqAbs(originalLP, currentLP,0);
+            assertApproxEqAbs(originalLP, currentLP, 0);
         }
     }
 
-    // /*
-    // * user swaps gold to usdc then does reverse swap into gold from usdc
+    // user swaps gold to usdc then does reverse swap into gold from usdc
     // swap amount is relatively huge compare to the pool balance
-    // after 2 rounds of swap, user gets almost same amount of gold to the original gold balance
-    //  */
+    // after 2 rounds of swap, user gets almost same amount of gold to the original gold balance 
     function testSwapDifference (uint256 percentage) public {
         cheats.assume(percentage > 0);
         cheats.assume(percentage < 30);
+
         for(uint256 i = 0; i < 3; ++i){
             // first deposit from the depositor
-            cheats.startPrank(address(accounts[0]));
-            curves[i].deposit(10000000 * decimals[i], block.timestamp + 60);
-            cheats.stopPrank();
+            cheats.prank(address(accounts[0]));
+            curves[i].deposit(10_000_000 * decimals[i], block.timestamp + 60);
+
             uint256 poolForexBal = tokens[i].balanceOf(address(curves[i]));
+
             // mint gold to trader
             if(i == 0)
                 tokens[i].mint(address(accounts[1]), poolForexBal.div(100).mul(percentage));
             else
                 deal(address(tokens[i]),address(accounts[1]), poolForexBal.div(100).mul(percentage));
+            
             cheats.startPrank(address(accounts[1]));
             tokens[i].approve(address(curves[i]), type(uint).max);
             tokens[3].approve(address(curves[i]), type(uint).max);
+            
             uint256 originalForexBal = tokens[i].balanceOf(address(accounts[1]));
             // first swap gold into usdc
             curves[i].originSwap(
@@ -262,12 +267,10 @@ contract V2Test is Test {
                 0,
                 block.timestamp + 60
             );
+            
             uint256 currentGoldBal = tokens[i].balanceOf(address(accounts[1]));
-            assertApproxEqAbs(
-                originalForexBal,
-                currentGoldBal,
-                originalForexBal.div(100)
-            );
+            
+            assertApproxEqAbs(originalForexBal, currentGoldBal, originalForexBal.div(100));
             cheats.stopPrank();
         }
     }
@@ -275,18 +278,22 @@ contract V2Test is Test {
     function testInvariant (uint256 percentage) public {
         cheats.assume(percentage > 0);
         cheats.assume(percentage < 100);
+
         for(uint256 i = 0; i < 3; ++i){
-            cheats.startPrank(address(accounts[0]));
-            curves[i].deposit(10000000 * decimals[i], block.timestamp + 60);
-            cheats.stopPrank();
+            cheats.prank(address(accounts[0]));
+            curves[i].deposit(10_000_000 * decimals[i], block.timestamp + 60);
+
             uint256 poolForexBal = tokens[i].balanceOf(address(curves[i]));
             uint256 poolUSDCBal = tokens[3].balanceOf(address(curves[i]));
+            
             // mint some % of goldBal of the pool to the trader to swap
             if(i == 0)
                 tokens[i].mint(address(accounts[i]),  poolForexBal.mul(9000000));
             else
                 deal(address(tokens[i]),address(accounts[i]),  poolForexBal.mul(9000000));
+            
             deal(address(tokens[3]),address(accounts[i]), poolUSDCBal.mul(9000000));
+            
             // now deposit huge amount to the pool
             cheats.startPrank(address(accounts[0]));
             tokens[i].approve(address(curves[i]), type(uint).max);
@@ -297,12 +304,13 @@ contract V2Test is Test {
     }
 
     function testProtocolFee (uint256 traderGoldBal) public{
-        cheats.assume(traderGoldBal > 10 );
-        cheats.assume(traderGoldBal < 100000);
-        for(uint256 i = 0; i < 3; ++i){
-            cheats.startPrank(address(accounts[0]));
-            curves[i].deposit(10000000 * 1e18, block.timestamp + 60);
-            cheats.stopPrank();
+        cheats.assume(traderGoldBal > 10);
+        cheats.assume(traderGoldBal < 100_000);
+
+        for(uint256 i = 0; i < 1; ++i){
+            cheats.prank(address(accounts[0]));
+            curves[i].deposit(uint256(10_000_000).mul(1e18), block.timestamp + 60);
+
             if (i == 0)
                 tokens[0].mint(address(accounts[1]), traderGoldBal * decimals[i]);
             else
@@ -312,22 +320,27 @@ contract V2Test is Test {
             tokens[i].approve(address(curves[i]), type(uint256).max);
             tokens[3].approve(address(curves[i]), type(uint256).max);
 
+            console.logUint(tokens[3].balanceOf(address(accounts[2])));
+
             curves[i].originSwap(
                 address(tokens[i]),
                 address(tokens[3]),
                 traderGoldBal * decimals[i],
                 0,
                 block.timestamp + 60
-                );
+            );
+            
             uint256 treasuryGoldBal = tokens[0].balanceOf(address(accounts[2]));
             uint256 treasuryUsdcBal = tokens[3].balanceOf(address(accounts[2]));
             uint256 traderUsdcBal = tokens[3].balanceOf(address(accounts[1]));
+            
             // first swap
             console.logString("1st swap");
             console.logUint(traderUsdcBal);
             console.logUint(treasuryUsdcBal);
             console.logString("trader usdc bal");
             console.logUint(traderUsdcBal);
+            
             // second swap
             curves[i].originSwap(
                 address(tokens[3]),
@@ -335,7 +348,7 @@ contract V2Test is Test {
                 tokens[3].balanceOf(address(accounts[1])),
                 0,
                 block.timestamp + 60
-                );
+            );
             console.logString("2nd swap");
             console.logUint(tokens[i].balanceOf(address(accounts[2])));
             console.logUint(tokens[3].balanceOf(address(accounts[2])));
