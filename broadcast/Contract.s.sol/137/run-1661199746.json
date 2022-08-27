@@ -1,0 +1,29 @@
+{
+  "transactions": [
+    {
+      "hash": null,
+      "transactionType": "CREATE",
+      "contractName": "Ablah",
+      "contractAddress": "0x1529c8aa4eafc5a4b23afc8313f3658a730afce5",
+      "function": null,
+      "arguments": null,
+      "transaction": {
+        "type": "0x02",
+        "from": "0x5612190b20acc00e6a701123a3895cefb23f82d7",
+        "gas": "0x20914",
+        "value": "0x0",
+        "data": "0x60806040526104d2600055348015601557600080fd5b50607d806100246000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063e39dcc2114602d575b600080fd5b603560005481565b60405190815260200160405180910390f3fea2646970667358221220df8c003166e1be510b56e83a524ef8d55b2b0590082569b4e9d7b7ba06e29f2764736f6c634300080d0033",
+        "nonce": "0x16",
+        "accessList": []
+      },
+      "additionalContracts": []
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [],
+  "path": "/Users/kin/Projects/dfx/protocol-v2/broadcast/Contract.s.sol/137/run-latest.json",
+  "returns": {},
+  "timestamp": 1661199746,
+  "commit": "598a3b1"
+}

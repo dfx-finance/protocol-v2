@@ -1,0 +1,46 @@
+{
+  "transactions": [
+    {
+      "hash": "0xaaed8a643cbf383a102f81e3d293092e9ccc3829f7b87ae759ada0e6bb379e2c",
+      "transactionType": "CREATE",
+      "contractName": "Ablah",
+      "contractAddress": "0xf581bec5ab2acafb5b9eaaaa4abc68089d8fa7ba",
+      "function": null,
+      "arguments": null,
+      "transaction": {
+        "type": "0x02",
+        "from": "0xa75ceb6801d48449affa0ee6f31205b2a5567bec",
+        "gas": "0x20914",
+        "value": "0x0",
+        "data": "0x60806040526104d2600055348015601557600080fd5b50607d806100246000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063e39dcc2114602d575b600080fd5b603560005481565b60405190815260200160405180910390f3fea2646970667358221220df8c003166e1be510b56e83a524ef8d55b2b0590082569b4e9d7b7ba06e29f2764736f6c634300080d0033",
+        "nonce": "0x13b",
+        "accessList": []
+      },
+      "additionalContracts": []
+    }
+  ],
+  "receipts": [
+    {
+      "transactionHash": "0xaaed8a643cbf383a102f81e3d293092e9ccc3829f7b87ae759ada0e6bb379e2c",
+      "transactionIndex": "0xa2",
+      "blockHash": "0xb19f410ceda02401ae153cee5dfb348744f96ecbbb3d1c6f9c10f0165c62bbde",
+      "blockNumber": "0xeade5c",
+      "from": "0xa75ceb6801d48449affa0ee6f31205b2a5567bec",
+      "to": null,
+      "cumulativeGasUsed": "0xc493a5",
+      "gasUsed": "0x190d5",
+      "contractAddress": "0xf581bec5ab2acafb5b9eaaaa4abc68089d8fa7ba",
+      "logs": [],
+      "status": "0x1",
+      "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "type": "0x2",
+      "effectiveGasPrice": "0xb3bcdd374"
+    }
+  ],
+  "libraries": [],
+  "pending": [],
+  "path": "/Users/kin/Projects/dfx/protocol-v2/broadcast/Contract.s.sol/1/run-latest.json",
+  "returns": {},
+  "timestamp": 1661199911,
+  "commit": "598a3b1"
+}
