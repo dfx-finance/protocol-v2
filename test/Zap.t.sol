@@ -131,17 +131,12 @@ contract ZapTest is Test {
         cheats.stopPrank();
     }
     // // test swap of forex stable coin(euroc, cadc) usdc
-    function testZap(/*uint256 amt*/) public {
-        uint256 amt = 10000000;
-        // cheats.assume(amt > 100);
-        // cheats.assume(amt < 10000000);
+    function testZap(uint256 amt) public {
+        cheats.assume(amt > 100);
+        cheats.assume(amt < 10000000);
         for(uint256 i = 0; i < 2; ++i){
             // mint token to zapper
-            console.logString("###################################");
             deal(address(tokens[i+1]), address(accounts[1]), amt * decimals[i+1]);
-
-            uint256 noDecForexBal = tokens[i+1].balanceOf(address(accounts[1]));
-            noDecForexBal = noDecForexBal.div(decimals[i+1]);
 
             cheats.startPrank(address(accounts[1]));
             tokens[i+1].approve(address(curves[i+1]), type(uint).max);
@@ -168,11 +163,19 @@ contract ZapTest is Test {
             zap.upzapFromQuote(address(curves[i+1]), curves[i+1].balanceOf(address(accounts[1])), block.timestamp+60);
             uint256 currentBaseBal = tokens[i+1].balanceOf(address(accounts[1]));
             uint256 currentQuoteBal = tokens[3].balanceOf(address(accounts[1]));
-            console.logUint(originalBaseBal);
-            console.logUint(currentBaseBal);
-            console.logUint(currentQuoteBal);
+            int256 baseUSDPrice = oracles[i+1].latestAnswer();
+            int256 quoteUSDPrice = oracles[3].latestAnswer();
+            originalBaseBal = originalBaseBal.div(decimals[i+1]);
+            currentBaseBal = currentBaseBal.div(decimals[i+1]);
+            currentQuoteBal = currentQuoteBal.div(decimals[3]);
+            
+            uint256 originalBaseInUSD = originalBaseBal.mul(uint256(baseUSDPrice));
+            uint256 currentBaseInUSD = currentBaseBal.mul(uint256(baseUSDPrice));
+            uint256 currentQuoteInUSD = currentQuoteBal.mul(uint256(quoteUSDPrice));
+            uint256 currentTotalInUSD = currentBaseInUSD.add(currentQuoteInUSD);
+            assertApproxEqAbs(originalBaseInUSD, currentTotalInUSD, originalBaseInUSD.div(20));
+            tokens[3].transfer(address(accounts[2]), tokens[3].balanceOf(address(accounts[1])));
             cheats.stopPrank();
-            console.logString("###################################");
         }
     }
 }
