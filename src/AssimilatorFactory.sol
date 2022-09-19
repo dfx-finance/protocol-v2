@@ -36,7 +36,7 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
     ) external override onlyCurveFactory returns (AssimilatorV2) {
         bytes32 assimilatorID = keccak256(abi.encode(_token));
         if (address(assimilators[assimilatorID]) != address(0))
-            revert("AssimilatorFactory/currency-pair-already-exists");
+            revert("AssimilatorFactory/oracle-stablecoin-pair-already-exists");
         AssimilatorV2 assimilator = new AssimilatorV2(_oracle, _token, _tokenDecimals, IOracle(_oracle).decimals());
         assimilators[assimilatorID] = assimilator;
         emit NewAssimilator(msg.sender, assimilatorID, address(assimilator));
