@@ -98,9 +98,9 @@ contract FlashloanTest is Test {
                 address(usdc),
                 DefaultCurve.BASE_WEIGHT,
                 DefaultCurve.QUOTE_WEIGHT,
-                address(foreignOracles[i]),
+                foreignOracles[i],
                 foreignStables[i].decimals(),
-                address(usdcOracle),
+                usdcOracle,
                 usdc.decimals()
             );
 

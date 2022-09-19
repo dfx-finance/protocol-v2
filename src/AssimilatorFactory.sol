@@ -30,7 +30,7 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
     }
 
     function newAssimilator(
-        address _oracle,
+        IOracle _oracle,
         address _token,
         uint256 _tokenDecimals
     ) external override onlyCurveFactory returns (AssimilatorV2) {

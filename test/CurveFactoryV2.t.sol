@@ -54,9 +54,9 @@ contract CurveFactoryV2Test is Test {
             address(usdc),
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
-            address(cadcOracle),
+            cadcOracle,
             cadc.decimals(),
-            address(usdcOracle),
+            usdcOracle,
             usdc.decimals()
         );
 
@@ -79,9 +79,9 @@ contract CurveFactoryV2Test is Test {
             address(usdc),
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
-            address(cadcOracle),
+            cadcOracle,
             cadc.decimals(),
-            address(usdcOracle),
+            usdcOracle,
             usdc.decimals()
         );
         dfxCadcCurve = curveFactory.newCurve(curveInfo);
@@ -96,9 +96,9 @@ contract CurveFactoryV2Test is Test {
             address(usdc),
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
-            address(eurocOracle),
+            eurocOracle,
             euroc.decimals(),
-            address(usdcOracle),
+            usdcOracle,
             usdc.decimals()
         );
         dfxEurocCurve = curveFactory.newCurve(curveInfo);

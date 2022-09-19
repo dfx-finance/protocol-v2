@@ -84,9 +84,9 @@ contract ProtocolFeeTest is Test {
                 address(tokens[3]),
                 DefaultCurve.BASE_WEIGHT,
                 DefaultCurve.QUOTE_WEIGHT,
-                address(oracles[i]),
+                oracles[i],
                 tokens[i].decimals(),
-                address(oracles[3]),
+                oracles[3],
                 tokens[3].decimals()
             );
             Curve _curve = curveFactory.newCurve(curveInfo);
