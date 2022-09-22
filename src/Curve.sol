@@ -305,12 +305,12 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         _;
     }
 
-    modifier inWhitelistingStage() {
+    modifier isInWhitelistingStage() {
         require(whitelistingStage, "Curve/whitelist-stage-on-going");
         _;
     }
 
-    modifier notInWhitelistingStage() {
+    modifier isNotisInWhitelistingStage() {
         require(!whitelistingStage, "Curve/whitelist-stage-stopped");
         _;
     }
@@ -499,7 +499,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         bytes32[] calldata merkleProof,
         uint256 _deposit,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant inWhitelistingStage returns (uint256, uint256[] memory) {
+    ) external deadline(_deadline) transactable nonReentrant isInWhitelistingStage returns (uint256, uint256[] memory) {
         require(isWhitelisted(index, account, amount, merkleProof), "Curve/not-whitelisted");
         require(msg.sender == account, "Curve/not-approved-user");
 
@@ -526,7 +526,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         deadline(_deadline)
         transactable
         nonReentrant
-        notInWhitelistingStage
+        isNotisInWhitelistingStage
         returns (uint256, uint256[] memory)
     {
         // (curvesMinted_,  deposits_)
