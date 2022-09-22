@@ -47,6 +47,7 @@ contract CurveFactoryV2Test is Test {
 
         assimilatorFactory.setCurveFactory(address(curveFactory));
 
+        cheats.startPrank(address(treasury));
         CurveInfo memory curveInfo = CurveInfo(
             string.concat("dfx-", cadc.name()),
             string.concat("dfx-", cadc.symbol()),
@@ -69,6 +70,7 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.LAMBDA
         );
         dfxCadcCurve.turnOffWhitelisting();
+        cheats.stopPrank();
     }
 
     function testFailDuplicatePairs() public {
