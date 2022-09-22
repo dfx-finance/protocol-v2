@@ -300,6 +300,11 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         _;
     }
 
+    modifier isNotEmergency() {
+        require(!emergency, "Curve/emergency-only-allowing-emergency-proportional-withdraw");
+        _;
+    }
+
     modifier deadline(uint256 _deadline) {
         require(block.timestamp < _deadline, "Curve/tx-deadline-passed");
         _;
@@ -527,6 +532,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         transactable
         nonReentrant
         notInWhitelistingStage
+        isNotEmergency
         returns (uint256, uint256[] memory)
     {
         // (curvesMinted_,  deposits_)
@@ -566,6 +572,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         external
         deadline(_deadline)
         nonReentrant
+        isNotEmergency
         returns (uint256[] memory withdrawals_)
     {
         if (whitelistingStage) {
