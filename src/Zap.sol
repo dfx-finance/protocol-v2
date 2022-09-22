@@ -74,6 +74,52 @@ contract Zap {
         return zap(_curve, _zapAmount, _deadline, _minLPAmount, false);
     }
 
+    // unzap
+    function upzapFromBase(
+        address _curve,
+        uint256 _lpAmount,
+        uint256 _deadline
+    ) public returns (uint256) {
+        return unzap(_curve, _lpAmount,_deadline, true);
+    }
+
+    function upzapFromQuote(
+        address _curve,
+        uint256 _lpAmount,
+        uint256 _deadline
+    ) public returns (uint256) {
+        return unzap(_curve, _lpAmount,_deadline, false);
+    }
+
+    function unzap(
+        address _curve,
+        uint256 _lpAmount,
+        uint256 _deadline,
+        bool _isFromBase
+    ) public returns (uint256) {
+        IERC20(_curve).transferFrom(msg.sender, address(this), _lpAmount);
+        Curve(_curve).withdraw(_lpAmount, _deadline);
+        address base = Curve(_curve).reserves(0);
+        if(_isFromBase){
+            uint256 baseAmount = IERC20(base).balanceOf(address(this));
+            IERC20(base).safeApprove(_curve, 0);
+            IERC20(base).safeApprove(_curve, type(uint256).max);
+            Curve(_curve).originSwap(base, address(USDC), baseAmount, 0, _deadline);
+            uint256 usdcAmount = USDC.balanceOf(address(this));
+            USDC.transfer(msg.sender, usdcAmount);
+            return usdcAmount;
+        }
+        else{
+            uint256 usdcAmount = USDC.balanceOf(address(this));
+            USDC.safeApprove(_curve, 0);
+            USDC.safeApprove(_curve, type(uint256).max);
+            Curve(_curve).originSwap(address(USDC), base, usdcAmount, 0, _deadline);
+            uint256 baseAmount = IERC20(base).balanceOf(address(this));
+            IERC20(base).transfer(msg.sender, baseAmount);
+            return baseAmount;
+        }
+    }
+
     /// @notice Zaps from a single token into the LP pool
     /// @param _curve The address of the curve
     /// @param _zapAmount The amount to zap, denominated in the ERC20's decimal placing
