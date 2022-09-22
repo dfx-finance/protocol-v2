@@ -7,7 +7,7 @@ import "./interfaces/IAssimilatorFactory.sol";
 import "./interfaces/IOracle.sol";
 
 contract AssimilatorFactory is IAssimilatorFactory, Ownable {
-    event NewAssimilator(address indexed caller, bytes32 indexed id, address indexed assimilator, address indexed oracle, address indexed token);
+    event NewAssimilator(address indexed caller, bytes32 indexed id, address indexed assimilator, address oracle, address token);
     event AssimilatorRevoked(address indexed caller, bytes32 indexed id, address indexed assimilator);
     event CurveFactoryUpdated(address indexed caller, address indexed curveFactory);
     mapping(bytes32 => AssimilatorV2) public assimilators;
