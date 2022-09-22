@@ -418,7 +418,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _originAmount,
         uint256 _minTargetAmount,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant returns (uint256 targetAmount_) {
+    ) external deadline(_deadline) transactable noDelegateCall nonReentrant returns (uint256 targetAmount_) {
         OriginSwapData memory _swapData;
         _swapData._origin = _origin;
         _swapData._target = _target;
@@ -457,7 +457,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _maxOriginAmount,
         uint256 _targetAmount,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant returns (uint256 originAmount_) {
+    ) external deadline(_deadline) transactable noDelegateCall nonReentrant returns (uint256 originAmount_) {
         TargetSwapData memory _swapData;
         _swapData._origin = _origin;
         _swapData._target = _target;
