@@ -97,7 +97,7 @@ contract Zap {
         uint256 _deadline,
         bool _isFromBase
     ) public returns (uint256) {
-        IERC20(_curve).transferFrom(msg.sender, address(this), _lpAmount);
+        IERC20(_curve).safeTransferFrom(msg.sender, address(this), _lpAmount);
         Curve(_curve).withdraw(_lpAmount, _deadline);
         address base = Curve(_curve).reserves(0);
         if(_isFromBase){
@@ -106,7 +106,7 @@ contract Zap {
             IERC20(base).safeApprove(_curve, type(uint256).max);
             Curve(_curve).originSwap(base, address(USDC), baseAmount, 0, _deadline);
             uint256 usdcAmount = USDC.balanceOf(address(this));
-            USDC.transfer(msg.sender, usdcAmount);
+            USDC.safeTransfer(msg.sender, usdcAmount);
             return usdcAmount;
         }
         else{
@@ -115,7 +115,7 @@ contract Zap {
             USDC.safeApprove(_curve, type(uint256).max);
             Curve(_curve).originSwap(address(USDC), base, usdcAmount, 0, _deadline);
             uint256 baseAmount = IERC20(base).balanceOf(address(this));
-            IERC20(base).transfer(msg.sender, baseAmount);
+            IERC20(base).safeTransfer(msg.sender, baseAmount);
             return baseAmount;
         }
     }
