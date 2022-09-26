@@ -418,7 +418,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _originAmount,
         uint256 _minTargetAmount,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant returns (uint256 targetAmount_) {
+    ) external deadline(_deadline) transactable nonReentrant noDelegateCall returns (uint256 targetAmount_) {
         OriginSwapData memory _swapData;
         _swapData._origin = _origin;
         _swapData._target = _target;
@@ -457,7 +457,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _maxOriginAmount,
         uint256 _targetAmount,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant returns (uint256 originAmount_) {
+    ) external deadline(_deadline) transactable nonReentrant noDelegateCall returns (uint256 originAmount_) {
         TargetSwapData memory _swapData;
         _swapData._origin = _origin;
         _swapData._target = _target;
@@ -499,7 +499,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         bytes32[] calldata merkleProof,
         uint256 _deposit,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant inWhitelistingStage returns (uint256, uint256[] memory) {
+    ) external deadline(_deadline) transactable nonReentrant noDelegateCall inWhitelistingStage returns (uint256, uint256[] memory) {
         require(isWhitelisted(index, account, amount, merkleProof), "Curve/not-whitelisted");
         require(msg.sender == account, "Curve/not-approved-user");
 
@@ -526,6 +526,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         deadline(_deadline)
         transactable
         nonReentrant
+        noDelegateCall
         notInWhitelistingStage
         returns (uint256, uint256[] memory)
     {
@@ -553,6 +554,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         isEmergency
         deadline(_deadline)
         nonReentrant
+        noDelegateCall
         returns (uint256[] memory withdrawals_)
     {
         return ProportionalLiquidity.emergencyProportionalWithdraw(curve, _curvesToBurn);
@@ -566,6 +568,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         external
         deadline(_deadline)
         nonReentrant
+        noDelegateCall
         returns (uint256[] memory withdrawals_)
     {
         if (whitelistingStage) {
@@ -594,7 +597,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     /// @param _recipient the address of where to send the curve tokens
     /// @param _amount the amount of curve tokens to send
     /// @return success_ the success bool of the call
-    function transfer(address _recipient, uint256 _amount) public nonReentrant returns (bool success_) {
+    function transfer(address _recipient, uint256 _amount) public nonReentrant noDelegateCall returns (bool success_) {
         success_ = Curves.transfer(curve, _recipient, _amount);
     }
 
@@ -607,7 +610,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         address _sender,
         address _recipient,
         uint256 _amount
-    ) public nonReentrant returns (bool success_) {
+    ) public nonReentrant noDelegateCall returns (bool success_) {
         success_ = Curves.transferFrom(curve, _sender, _recipient, _amount);
     }
 
@@ -615,7 +618,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     /// @param _spender the account to allow to spend from msg.sender
     /// @param _amount the amount to specify the spender can spend
     /// @return success_ the success bool of this call
-    function approve(address _spender, uint256 _amount) public nonReentrant returns (bool success_) {
+    function approve(address _spender, uint256 _amount) public nonReentrant noDelegateCall returns (bool success_) {
         success_ = Curves.approve(curve, _spender, _amount);
     }
     
