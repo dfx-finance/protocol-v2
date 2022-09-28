@@ -423,7 +423,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _originAmount,
         uint256 _minTargetAmount,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant returns (uint256 targetAmount_) {
+    ) external deadline(_deadline) transactable nonReentrant isNotEmergency returns (uint256 targetAmount_) {
         OriginSwapData memory _swapData;
         _swapData._origin = _origin;
         _swapData._target = _target;
@@ -462,7 +462,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _maxOriginAmount,
         uint256 _targetAmount,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant returns (uint256 originAmount_) {
+    ) external deadline(_deadline) transactable nonReentrant isNotEmergency returns (uint256 originAmount_) {
         TargetSwapData memory _swapData;
         _swapData._origin = _origin;
         _swapData._target = _target;
@@ -504,7 +504,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         bytes32[] calldata merkleProof,
         uint256 _deposit,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant inWhitelistingStage returns (uint256, uint256[] memory) {
+    ) external deadline(_deadline) transactable nonReentrant inWhitelistingStage isNotEmergency returns (uint256, uint256[] memory) {
         require(isWhitelisted(index, account, amount, merkleProof), "Curve/not-whitelisted");
         require(msg.sender == account, "Curve/not-approved-user");
 
@@ -601,7 +601,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     /// @param _recipient the address of where to send the curve tokens
     /// @param _amount the amount of curve tokens to send
     /// @return success_ the success bool of the call
-    function transfer(address _recipient, uint256 _amount) public nonReentrant returns (bool success_) {
+    function transfer(address _recipient, uint256 _amount) public nonReentrant isNotEmergency returns (bool success_) {
         success_ = Curves.transfer(curve, _recipient, _amount);
     }
 
@@ -614,7 +614,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         address _sender,
         address _recipient,
         uint256 _amount
-    ) public nonReentrant returns (bool success_) {
+    ) public nonReentrant isNotEmergency returns (bool success_) {
         success_ = Curves.transferFrom(curve, _sender, _recipient, _amount);
     }
 
@@ -631,7 +631,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 amount0,
         uint256 amount1,
         bytes calldata data
-    ) external transactable noDelegateCall {
+    ) external transactable noDelegateCall isNotEmergency {
         uint256 fee = curve.epsilon.mulu(1e18);
         
         require(IERC20(derivatives[0]).balanceOf(address(this)) > 0, 'Curve/token0-zero-liquidity-depth');
