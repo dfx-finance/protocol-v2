@@ -305,13 +305,13 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         _;
     }
 
-    modifier isInWhitelistingStage() {
-        require(whitelistingStage, "Curve/whitelist-stage-on-going");
+    modifier inWhitelistingStage() {
+        require(whitelistingStage, "Curve/whitelist-stage-stopped");
         _;
     }
 
-    modifier isNotisInWhitelistingStage() {
-        require(!whitelistingStage, "Curve/whitelist-stage-stopped");
+    modifier notInWhitelistingStage() {
+        require(!whitelistingStage, "Curve/whitelist-stage-on-going");
         _;
     }
 
