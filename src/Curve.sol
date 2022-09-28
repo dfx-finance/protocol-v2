@@ -501,6 +501,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _deadline
     ) external deadline(_deadline) transactable nonReentrant inWhitelistingStage returns (uint256, uint256[] memory) {
         require(amount == 1, "Curve/invalid-amount");
+        require(index <= 473, "Curve/index-out-of-range" );
         require(isWhitelisted(index, account, amount, merkleProof), "Curve/not-whitelisted");
         require(msg.sender == account, "Curve/not-approved-user");
 
