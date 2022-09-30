@@ -93,11 +93,7 @@ contract RouterTest is Test {
                 address(foreignOracles[i]),
                 foreignStables[i].decimals(),
                 address(usdcOracle),
-                usdc.decimals()
-            );
-
-            dfxCurves[i] = curveFactory.newCurve(curveInfo);
-            dfxCurves[i].setParams(
+                usdc.decimals(),
                 DefaultCurve.ALPHA,
                 DefaultCurve.BETA,
                 DefaultCurve.MAX,
@@ -105,6 +101,7 @@ contract RouterTest is Test {
                 DefaultCurve.LAMBDA
             );
 
+            dfxCurves[i] = curveFactory.newCurve(curveInfo);
             dfxCurves[i].turnOffWhitelisting();
         }
         cheats.stopPrank();
