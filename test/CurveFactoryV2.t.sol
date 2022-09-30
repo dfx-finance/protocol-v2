@@ -57,17 +57,15 @@ contract CurveFactoryV2Test is Test {
             address(cadcOracle),
             cadc.decimals(),
             address(usdcOracle),
-            usdc.decimals()
-        );
-
-        dfxCadcCurve = curveFactory.newCurve(curveInfo);
-        dfxCadcCurve.setParams(
+            usdc.decimals(),
             DefaultCurve.ALPHA,
             DefaultCurve.BETA,
             DefaultCurve.MAX,
             DefaultCurve.EPSILON,
             DefaultCurve.LAMBDA
         );
+
+        dfxCadcCurve = curveFactory.newCurve(curveInfo);
         dfxCadcCurve.turnOffWhitelisting();
     }
 
@@ -82,7 +80,12 @@ contract CurveFactoryV2Test is Test {
             address(cadcOracle),
             cadc.decimals(),
             address(usdcOracle),
-            usdc.decimals()
+            usdc.decimals(),
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
         );
         dfxCadcCurve = curveFactory.newCurve(curveInfo);
         fail("CurveFactory/currency-pair-already-exists");
@@ -99,7 +102,12 @@ contract CurveFactoryV2Test is Test {
             address(eurocOracle),
             euroc.decimals(),
             address(usdcOracle),
-            usdc.decimals()
+            usdc.decimals(),
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
         );
         dfxEurocCurve = curveFactory.newCurve(curveInfo);
 
