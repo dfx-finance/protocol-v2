@@ -311,12 +311,12 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     }
 
     modifier inWhitelistingStage() {
-        require(whitelistingStage, "Curve/whitelist-stage-on-going");
+        require(whitelistingStage, "Curve/whitelist-stage-stopped");
         _;
     }
 
     modifier notInWhitelistingStage() {
-        require(!whitelistingStage, "Curve/whitelist-stage-stopped");
+        require(!whitelistingStage, "Curve/whitelist-stage-on-going");
         _;
     }
 
@@ -423,7 +423,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _originAmount,
         uint256 _minTargetAmount,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant isNotEmergency returns (uint256 targetAmount_) {
+    ) external deadline(_deadline) transactable noDelegateCall isNotEmergency nonReentrant returns (uint256 targetAmount_) {
         OriginSwapData memory _swapData;
         _swapData._origin = _origin;
         _swapData._target = _target;
@@ -462,7 +462,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 _maxOriginAmount,
         uint256 _targetAmount,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant isNotEmergency returns (uint256 originAmount_) {
+    ) external deadline(_deadline) transactable noDelegateCall isNotEmergency nonReentrant returns (uint256 originAmount_) {
         TargetSwapData memory _swapData;
         _swapData._origin = _origin;
         _swapData._target = _target;
@@ -504,7 +504,9 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         bytes32[] calldata merkleProof,
         uint256 _deposit,
         uint256 _deadline
-    ) external deadline(_deadline) transactable nonReentrant inWhitelistingStage isNotEmergency returns (uint256, uint256[] memory) {
+    ) external deadline(_deadline) transactable nonReentrant inWhitelistingStage returns (uint256, uint256[] memory) {
+        require(amount == 1, "Curve/invalid-amount");
+        require(index <= 473, "Curve/index-out-of-range" );
         require(isWhitelisted(index, account, amount, merkleProof), "Curve/not-whitelisted");
         require(msg.sender == account, "Curve/not-approved-user");
 
@@ -561,7 +563,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         nonReentrant
         returns (uint256[] memory withdrawals_)
     {
-        return ProportionalLiquidity.emergencyProportionalWithdraw(curve, _curvesToBurn);
+        return ProportionalLiquidity.proportionalWithdraw(curve, _curvesToBurn);
     }
 
     /// @notice  withdrawas amount of curve tokens from the the pool equally from the numeraire assets of the pool with no slippage

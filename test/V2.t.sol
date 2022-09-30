@@ -87,16 +87,14 @@ contract V2Test is Test {
                 address(oracles[i]),
                 tokens[i].decimals(),
                 address(oracles[3]),
-                tokens[3].decimals()
-            );
-            Curve _curve = curveFactory.newCurve(curveInfo);
-            _curve.setParams(
+                tokens[3].decimals(),
                 DefaultCurve.ALPHA,
                 DefaultCurve.BETA,
                 DefaultCurve.MAX,
                 DefaultCurve.EPSILON,
                 DefaultCurve.LAMBDA
             );
+            Curve _curve = curveFactory.newCurve(curveInfo);
             _curve.turnOffWhitelisting();
             curves.push(_curve);
         }

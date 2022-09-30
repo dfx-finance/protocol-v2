@@ -101,11 +101,7 @@ contract FlashloanTest is Test {
                 address(foreignOracles[i]),
                 foreignStables[i].decimals(),
                 address(usdcOracle),
-                usdc.decimals()
-            );
-
-            dfxCurves[i] = curveFactory.newCurve(curveInfo);
-            dfxCurves[i].setParams(
+                usdc.decimals(),
                 DefaultCurve.ALPHA,
                 DefaultCurve.BETA,
                 DefaultCurve.MAX,
@@ -113,6 +109,7 @@ contract FlashloanTest is Test {
                 DefaultCurve.LAMBDA
             );
 
+            dfxCurves[i] = curveFactory.newCurve(curveInfo);
             dfxCurves[i].turnOffWhitelisting();
         }
         
