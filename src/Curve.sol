@@ -555,7 +555,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         nonReentrant
         returns (uint256[] memory withdrawals_)
     {
-        return ProportionalLiquidity.emergencyProportionalWithdraw(curve, _curvesToBurn);
+        return ProportionalLiquidity.proportionalWithdraw(curve, _curvesToBurn);
     }
 
     /// @notice  withdrawas amount of curve tokens from the the pool equally from the numeraire assets of the pool with no slippage
