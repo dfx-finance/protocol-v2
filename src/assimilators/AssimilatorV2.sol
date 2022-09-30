@@ -39,12 +39,12 @@ contract AssimilatorV2 is IAssimilator {
 
     // solhint-disable-next-line
     constructor(
-        address _oracle,
+        IOracle _oracle,
         address _token,
         uint256 _tokenDecimals,
         uint256 _oracleDecimals
     ) {
-        oracle = IOracle(_oracle);
+        oracle = _oracle;
         token = IERC20(_token);
         oracleDecimals = _oracleDecimals;
         tokenDecimals = _tokenDecimals;

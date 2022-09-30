@@ -30,7 +30,7 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
     }
 
     function newAssimilator(
-        address _oracle,
+        IOracle _oracle,
         address _token,
         uint256 _tokenDecimals
     ) external override onlyCurveFactory returns (AssimilatorV2) {
@@ -39,7 +39,7 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
             revert("AssimilatorFactory/oracle-stablecoin-pair-already-exists");
         AssimilatorV2 assimilator = new AssimilatorV2(_oracle, _token, _tokenDecimals, IOracle(_oracle).decimals());
         assimilators[assimilatorID] = assimilator;
-        emit NewAssimilator(msg.sender, assimilatorID, address(assimilator), _oracle, _token);
+        emit NewAssimilator(msg.sender, assimilatorID, address(assimilator), address(_oracle), _token);
         return assimilator;
     }
 
