@@ -47,6 +47,7 @@ contract CurveFactoryV2Test is Test {
 
         assimilatorFactory.setCurveFactory(address(curveFactory));
 
+        cheats.startPrank(address(treasury));
         CurveInfo memory curveInfo = CurveInfo(
             string.concat("dfx-", cadc.name()),
             string.concat("dfx-", cadc.symbol()),
@@ -56,19 +57,18 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.QUOTE_WEIGHT,
             cadcOracle,
             cadc.decimals(),
-            usdcOracle,
-            usdc.decimals()
-        );
-
-        dfxCadcCurve = curveFactory.newCurve(curveInfo);
-        dfxCadcCurve.setParams(
+            address(usdcOracle),
+            usdc.decimals(),
             DefaultCurve.ALPHA,
             DefaultCurve.BETA,
             DefaultCurve.MAX,
             DefaultCurve.EPSILON,
             DefaultCurve.LAMBDA
         );
+
+        dfxCadcCurve = curveFactory.newCurve(curveInfo);
         dfxCadcCurve.turnOffWhitelisting();
+        cheats.stopPrank();
     }
 
     function testFailDuplicatePairs() public {
@@ -81,8 +81,13 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.QUOTE_WEIGHT,
             cadcOracle,
             cadc.decimals(),
-            usdcOracle,
-            usdc.decimals()
+            address(usdcOracle),
+            usdc.decimals(),
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
         );
         dfxCadcCurve = curveFactory.newCurve(curveInfo);
         fail("CurveFactory/currency-pair-already-exists");
@@ -98,8 +103,13 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.QUOTE_WEIGHT,
             eurocOracle,
             euroc.decimals(),
-            usdcOracle,
-            usdc.decimals()
+            address(usdcOracle),
+            usdc.decimals(),
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
         );
         dfxEurocCurve = curveFactory.newCurve(curveInfo);
 
