@@ -76,6 +76,7 @@ contract ProtocolFeeTest is Test {
         );
         assimFactory.setCurveFactory(address(curveFactory));
         // now deploy curves
+        cheats.startPrank(address(accounts[2]));
         for(uint256 i = 0; i < 3;++i){
             CurveInfo memory curveInfo = CurveInfo(
                 string(abi.encode("dfx-curve-",i)),
@@ -98,6 +99,7 @@ contract ProtocolFeeTest is Test {
             _curve.turnOffWhitelisting();
             curves.push(_curve);
         }
+        cheats.stopPrank();
 
         // now mint gold & silver tokens
         uint256 mintAmt = 300_000_000_000;

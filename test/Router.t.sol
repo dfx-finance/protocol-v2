@@ -81,6 +81,7 @@ contract RouterTest is Test {
         
         assimilatorFactory.setCurveFactory(address(curveFactory));
         
+        cheats.startPrank(address(multisig));
         for (uint8 i = 0; i < fxTokenCount; i++) {
             CurveInfo memory curveInfo = CurveInfo(
                 string.concat("dfx-", foreignStables[i].symbol()),
@@ -103,6 +104,7 @@ contract RouterTest is Test {
             dfxCurves[i] = curveFactory.newCurve(curveInfo);
             dfxCurves[i].turnOffWhitelisting();
         }
+        cheats.stopPrank();
         
         uint256 user1TknAmnt = 300_000_000;
 

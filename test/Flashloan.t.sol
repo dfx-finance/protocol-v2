@@ -90,6 +90,7 @@ contract FlashloanTest is Test {
         
         assimilatorFactory.setCurveFactory(address(curveFactory));
         
+        cheats.startPrank(address(multisig));
         for (uint8 i = 0; i < fxTokenCount; i++) {
             CurveInfo memory curveInfo = CurveInfo(
                 string.concat("dfx-", foreignStables[i].symbol()),
@@ -112,7 +113,8 @@ contract FlashloanTest is Test {
             dfxCurves[i] = curveFactory.newCurve(curveInfo);
             dfxCurves[i].turnOffWhitelisting();
         }
-        
+        cheats.stopPrank();
+
         uint256 user1TknAmnt = 300_000_000;
 
         // Mint Foreign Stables
@@ -178,8 +180,8 @@ contract FlashloanTest is Test {
         uint256 generatedFee1 = FullMath.mulDivRoundingUp(flashData.amount1, fee, 1e18);
 
         // Should transfer the ownership to multisig tho
-        assertEq(generatedFee0, token0.balanceOf(address(this)));
-        assertEq(generatedFee1, token1.balanceOf(address(this)));
+        assertEq(generatedFee0, token0.balanceOf(address(multisig)));
+        assertEq(generatedFee1, token1.balanceOf(address(multisig)));
 
         assertGe(derivative0After, derivative0Before);
         assertGe(derivative1After, derivative1Before);
@@ -224,8 +226,8 @@ contract FlashloanTest is Test {
         uint256 generatedFee1 = FullMath.mulDivRoundingUp(flashData.amount1, fee, 1e18);
 
         // Should transfer the ownership to multisig tho
-        assertEq(generatedFee0, token0.balanceOf(address(this)));
-        assertEq(generatedFee1, token1.balanceOf(address(this)));
+        assertEq(generatedFee0, token0.balanceOf(address(multisig)));
+        assertEq(generatedFee1, token1.balanceOf(address(multisig)));
 
         assertGe(derivative0After, derivative0Before);
         assertGe(derivative1After, derivative1Before);
@@ -270,8 +272,8 @@ contract FlashloanTest is Test {
         uint256 generatedFee1 = FullMath.mulDivRoundingUp(flashData.amount1, fee, 1e18);
 
         // Should transfer the ownership to multisig tho
-        assertEq(generatedFee0, token0.balanceOf(address(this)));
-        assertEq(generatedFee1, token1.balanceOf(address(this)));
+        assertEq(generatedFee0, token0.balanceOf(address(multisig)));
+        assertEq(generatedFee1, token1.balanceOf(address(multisig)));
 
         assertGe(derivative0After, derivative0Before);
         assertGe(derivative1After, derivative1Before);
