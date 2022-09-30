@@ -135,6 +135,7 @@ contract Zap {
         bool isFromBase
     ) public returns (uint256) {
         (address base, uint256 swapAmount) = calcSwapAmountForZap(_curve, _zapAmount, isFromBase);
+        require(base == Curve(_curve).numeraires(0), "!Zap/base-is-not-in-numeraires");
 
         // Swap on curve
         if (isFromBase) {
