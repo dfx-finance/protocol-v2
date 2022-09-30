@@ -87,7 +87,7 @@ contract V2Test is Test {
                 DefaultCurve.QUOTE_WEIGHT,
                 oracles[i],
                 tokens[i].decimals(),
-                address(oracles[3]),
+                oracles[3],
                 tokens[3].decimals(),
                 DefaultCurve.ALPHA,
                 DefaultCurve.BETA,

@@ -92,7 +92,7 @@ contract RouterTest is Test {
                 DefaultCurve.QUOTE_WEIGHT,
                 foreignOracles[i],
                 foreignStables[i].decimals(),
-                address(usdcOracle),
+                usdcOracle,
                 usdc.decimals(),
                 DefaultCurve.ALPHA,
                 DefaultCurve.BETA,
