@@ -652,8 +652,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     ) external isFlashable transactable noDelegateCall isNotEmergency {
         uint256 fee = curve.epsilon.mulu(1e18);
 
-        console.log(flashable);
-        
         require(IERC20(derivatives[0]).balanceOf(address(this)) > 0, 'Curve/token0-zero-liquidity-depth');
         require(IERC20(derivatives[1]).balanceOf(address(this)) > 0, 'Curve/token1-zero-liquidity-depth');
         
