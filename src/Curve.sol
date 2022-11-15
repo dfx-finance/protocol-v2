@@ -262,8 +262,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
 
     event FrozenSet(bool isFrozen);
 
-    event FlashableSet(bool isFlashable);
-
     event EmergencyAlarm(bool isEmergency);
 
     event WhitelistingStopped();
@@ -323,7 +321,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     }
 
     modifier isFlashable() {
-        require(flashable, "Curve/flashloans-paused");
+        require(ICurveFactory(address(curveFactory)).getFlashableState(), "Curve/flashloans-paused");
         _;
     }
 
@@ -389,12 +387,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         )
     {
         return Orchestrator.viewCurve(curve);
-    }
-
-    function setFlashable(bool _toFlashOrNotToFlash) external onlyOwner {
-        emit FlashableSet(_toFlashOrNotToFlash);
-
-        flashable = _toFlashOrNotToFlash;
     }
 
     function turnOffWhitelisting() external onlyOwner {

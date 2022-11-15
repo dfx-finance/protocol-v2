@@ -86,6 +86,11 @@ contract FlashloanTest is Test {
             address(assimilatorFactory)
         );
 
+        curveFactory.transferOwnership(address(multisig));
+
+        cheats.prank(address(multisig));
+        curveFactory.setFlashable(true);
+
         router = new Router(address(curveFactory));
         
         assimilatorFactory.setCurveFactory(address(curveFactory));
@@ -111,7 +116,6 @@ contract FlashloanTest is Test {
             );
 
             dfxCurves[i] = curveFactory.newCurve(curveInfo);
-            dfxCurves[i].setFlashable(true);
             dfxCurves[i].turnOffWhitelisting();
         }
         cheats.stopPrank();
@@ -469,8 +473,8 @@ contract FlashloanTest is Test {
         IERC20Detailed token1 = usdc;
         Curve curve = dfxCurves[0];
         
-        // Make it not flashable
-        curve.setFlashable(true);
+        // Make it flashable
+        curveFactory.setFlashable(false);
     }
 
     function testFail_Flashable() public {
@@ -480,7 +484,7 @@ contract FlashloanTest is Test {
         
         // Make it not flashable
         cheats.prank(address(multisig));
-        curve.setFlashable(false);
+        curveFactory.setFlashable(false);
 
         uint256 dec0 = utils.tenToPowerOf(token0.decimals());
         uint256 dec1 = utils.tenToPowerOf(token1.decimals());
