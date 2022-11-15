@@ -62,7 +62,7 @@ contract FlashloanTest is Test {
         usdcOracle
     ];
 
-    int128 public protocolFee = 100;
+    int128 public protocolFee = 50000;
 
     AssimilatorFactory assimilatorFactory;
     CurveFactoryV2 curveFactory;
@@ -466,7 +466,7 @@ contract FlashloanTest is Test {
         curveFlash.initFlash(address(curve), flashData);
     }
 
-    function testReentrancy() public {
+    function testFail_Reentrancy() public {
         IERC20Detailed token0 = cadc;
         IERC20Detailed token1 = usdc;
         Curve curve = dfxCurves[0];
@@ -488,7 +488,7 @@ contract FlashloanTest is Test {
             decimal0: dec0,
             decimal1: dec1
         });
-        
+
         curveFlashReentrancy.initFlash(address(curve), flashData);
     }
 }
