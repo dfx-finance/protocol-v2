@@ -490,8 +490,5 @@ contract FlashloanTest is Test {
         });
         
         curveFlashReentrancy.initFlash(address(curve), flashData);
-
-        // curveFlash.initFlash(address(curve), flashData);
-        // curveFlash.
     }
 }

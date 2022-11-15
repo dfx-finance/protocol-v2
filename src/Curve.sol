@@ -636,7 +636,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 amount0,
         uint256 amount1,
         bytes calldata data
-    ) external transactable noDelegateCall isNotEmergency {
+    ) external nonReentrant noDelegateCall transactable isNotEmergency {
         uint256 fee = curve.epsilon.mulu(1e18);
         
         require(IERC20(derivatives[0]).balanceOf(address(this)) > 0, 'Curve/token0-zero-liquidity-depth');
