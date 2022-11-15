@@ -67,7 +67,6 @@ contract CurveFactoryV2Test is Test {
         );
 
         dfxCadcCurve = curveFactory.newCurve(curveInfo);
-        dfxCadcCurve.turnOffWhitelisting();
         cheats.stopPrank();
     }
 
