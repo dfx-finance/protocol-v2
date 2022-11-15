@@ -16,6 +16,8 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
+import "forge-std/Test.sol";
+
 import './interfaces/IFlashCallback.sol';
 
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -262,6 +264,8 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
 
     event FrozenSet(bool isFrozen);
 
+    event FlashableSet(bool isFlashable);
+
     event EmergencyAlarm(bool isEmergency);
 
     event WhitelistingStopped();
@@ -317,6 +321,11 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
 
     modifier notInWhitelistingStage() {
         require(!whitelistingStage, "Curve/whitelist-stage-on-going");
+        _;
+    }
+
+    modifier isFlashable() {
+        require(flashable, "Curve/flashloans-paused");
         _;
     }
 
@@ -382,6 +391,12 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         )
     {
         return Orchestrator.viewCurve(curve);
+    }
+
+    function setFlashable(bool _toFlashOrNotToFlash) external onlyOwner {
+        emit FlashableSet(_toFlashOrNotToFlash);
+
+        flashable = _toFlashOrNotToFlash;
     }
 
     function turnOffWhitelisting() external onlyOwner {
@@ -636,8 +651,10 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256 amount0,
         uint256 amount1,
         bytes calldata data
-    ) external transactable noDelegateCall isNotEmergency {
+    ) external isFlashable transactable noDelegateCall isNotEmergency {
         uint256 fee = curve.epsilon.mulu(1e18);
+
+        console.log(flashable);
         
         require(IERC20(derivatives[0]).balanceOf(address(this)) > 0, 'Curve/token0-zero-liquidity-depth');
         require(IERC20(derivatives[1]).balanceOf(address(this)) > 0, 'Curve/token1-zero-liquidity-depth');
