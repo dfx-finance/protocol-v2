@@ -5,4 +5,5 @@ interface ICurveFactory {
     function getProtocolFee() external view returns (int128);
     function getProtocolTreasury() external view returns (address);
     function getGlobalFrozenState() external view returns (bool);
+    function setGlobalFrozen(bool) external;
 }
