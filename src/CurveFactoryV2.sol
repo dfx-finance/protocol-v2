@@ -39,6 +39,10 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
     int128 public protocolFee;
     address public protocolTreasury;
 
+    // Global curve operational state
+    bool public globalFrozen = false;
+
+    event GlobalFrozenSet(bool isFrozen);
     event TreasuryUpdated(address indexed newTreasury);
     event ProtocolFeeUpdated(address indexed treasury, int128 indexed fee);
 
@@ -60,12 +64,22 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         assimilatorFactory = IAssimilatorFactory(_assimFactory);
     }
 
+    function getGlobalFrozenState() external view virtual override returns (bool) {
+        return globalFrozen;
+    }
+
     function getProtocolFee() external view virtual override returns (int128) {
         return protocolFee;
     }
 
     function getProtocolTreasury() external view virtual override returns (address) {
         return protocolTreasury;
+    }
+
+    function setGlobalFrozen(bool _toFreezeOrNotToFreeze) external onlyOwner {
+        emit GlobalFrozenSet(_toFreezeOrNotToFreeze);
+
+        globalFrozen = _toFlashOrNotToFlash;
     }
 
     function updateProtocolTreasury(address _newTreasury) external onlyOwner {
