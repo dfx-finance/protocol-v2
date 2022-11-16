@@ -462,6 +462,7 @@ contract FlashloanTest is Test {
         curveFlash.initFlash(address(curve), flashData);
     }
 
+    // Global Transactable State Frozen
     function testFail_GlobalFrozenFlashloans() public {
         IERC20Detailed token0 = cadc;
         IERC20Detailed token1 = usdc;

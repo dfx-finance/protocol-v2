@@ -139,7 +139,8 @@ contract CurveFactoryV2Test is Test {
         assertEq(address(newTreasury), curveFactory.getProtocolTreasury());
     }
 
-    function testOwnerSetGlobalFrozen() public {
+    // Global Transactable State Frozen
+    function testFail_OwnerSetGlobalFrozen() public {
         cheats.prank(address(liquidityProvider));
         ICurveFactory(address(curveFactory)).setGlobalFrozen(true);
     }
