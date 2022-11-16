@@ -79,7 +79,7 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
     function setGlobalFrozen(bool _toFreezeOrNotToFreeze) external onlyOwner {
         emit GlobalFrozenSet(_toFreezeOrNotToFreeze);
 
-        globalFrozen = _toFlashOrNotToFlash;
+        globalFrozen = _toFreezeOrNotToFreeze;
     }
 
     function updateProtocolTreasury(address _newTreasury) external onlyOwner {

@@ -321,7 +321,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     }
 
     modifier globallyTransactable() {
-        require(ICurveFactory(address(curveFactory)).getGlobalTransactableState(), "Curve/frozen-globally-only-allowing-proportional-withdraw");
+        require(!ICurveFactory(address(curveFactory)).getGlobalFrozenState(), "Curve/frozen-globally-only-allowing-proportional-withdraw");
         _;
     }
 
