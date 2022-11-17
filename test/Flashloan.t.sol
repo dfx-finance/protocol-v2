@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../src/interfaces/IAssimilator.sol";
 import "../src/interfaces/IOracle.sol";
+import "../src/interfaces/ICurve.sol";
 import "../src/interfaces/IERC20Detailed.sol";
 import "../src/AssimilatorFactory.sol";
 import "../src/CurveFactoryV2.sol";
@@ -23,6 +24,7 @@ import "./lib/Address.sol";
 import "./lib/CurveParams.sol";
 import "./utils/Utils.sol";
 import "./utils/CurveFlash.sol";
+import "./utils/CurveFlashReentrancy.sol";
 
 contract FlashloanTest is Test {
     using SafeMath for uint256;
@@ -60,19 +62,21 @@ contract FlashloanTest is Test {
         usdcOracle
     ];
 
-    int128 public protocolFee = 100;
+    int128 public protocolFee = 50000;
 
     AssimilatorFactory assimilatorFactory;
     CurveFactoryV2 curveFactory;
     Router router;
     Curve[fxTokenCount] dfxCurves;
     CurveFlash curveFlash;
+    CurveFlashReentrancy curveFlashReentrancy;
 
     function setUp() public {
         multisig = new MockUser();
         flashloaner = new MockUser();
         utils = new Utils();
         curveFlash = new CurveFlash();
+        curveFlashReentrancy = new CurveFlashReentrancy();
 
         for (uint8 i = 0; i < users.length; i++) {
             users[i] = new MockUser();
@@ -85,6 +89,11 @@ contract FlashloanTest is Test {
             address(multisig),
             address(assimilatorFactory)
         );
+
+        curveFactory.transferOwnership(address(multisig));
+
+        cheats.prank(address(multisig));
+        curveFactory.setFlashable(true);
 
         router = new Router(address(curveFactory));
         
@@ -461,7 +470,71 @@ contract FlashloanTest is Test {
 
         curveFlash.initFlash(address(curve), flashData);
     }
+    
+    function testFail_Reentrancy() public {
+        IERC20Detailed token0 = cadc;
+        IERC20Detailed token1 = usdc;
+        Curve curve = dfxCurves[0];
 
+        uint256 dec0 = utils.tenToPowerOf(token0.decimals());
+        uint256 dec1 = utils.tenToPowerOf(token1.decimals());
+
+        deal(address(token0), address(curveFlashReentrancy), uint256(100_000).mul(dec0));
+        deal(address(token1), address(curveFlashReentrancy), uint256(100_000).mul(dec1));
+
+        // view deposit before flashing
+        (uint256 one, uint256[] memory derivatives) = ICurve(address(curve)).viewDeposit(100_000e18);
+
+        FlashParams memory flashData = FlashParams({
+            token0: address(token0),
+            token1: address(token1),
+            amount0: derivatives[0],
+            amount1: derivatives[1],
+            decimal0: dec0,
+            decimal1: dec1
+        });
+
+        curveFlashReentrancy.initFlash(address(curve), flashData);
+    }
+
+    function testFail_NotOwnerSettingFlashable() public {
+        IERC20Detailed token0 = cadc;
+        IERC20Detailed token1 = usdc;
+        Curve curve = dfxCurves[0];
+
+        // Make it flashable
+        curveFactory.setFlashable(false);
+    }
+
+    function testFail_Flashable() public {
+        IERC20Detailed token0 = cadc;
+        IERC20Detailed token1 = usdc;
+        Curve curve = dfxCurves[0];
+
+        // Make it not flashable
+        cheats.prank(address(multisig));
+        curveFactory.setFlashable(false);
+
+        uint256 dec0 = utils.tenToPowerOf(token0.decimals());
+        uint256 dec1 = utils.tenToPowerOf(token1.decimals());
+
+        deal(address(token0), address(curveFlash), uint256(100_000).mul(dec0));
+        deal(address(token1), address(curveFlash), uint256(100_000).mul(dec1));
+
+        (uint256 one, uint256[] memory derivatives) = ICurve(address(curve)).viewDeposit(100_000e18);
+
+        FlashParams memory flashData = FlashParams({
+            token0: address(token0),
+            token1: address(token1),
+            amount0: derivatives[0],
+            amount1: derivatives[1],
+            decimal0: dec0,
+            decimal1: dec1
+        });
+        
+        curveFlash.initFlash(address(curve), flashData);
+    }
+    
     // Global Transactable State Frozen
     function testFail_GlobalFrozenFlashloans() public {
         IERC20Detailed token0 = cadc;
