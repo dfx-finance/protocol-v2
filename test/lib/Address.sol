@@ -10,6 +10,7 @@ library Mainnet {
     address public constant EUROC = 0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c;
     address public constant XSGD = 0x70e8dE73cE538DA2bEEd35d14187F6959a8ecA96;
     address public constant NZDS = 0xDa446fAd08277B4D2591536F204E018f32B6831c;
+    address public constant TRYB = 0x2C537E5624e4af88A7ae4060C022609376C8D0EB;
     address public constant RAI = 0x03ab458634910AaD20eF5f1C8ee96F1D6ac54919;
 
     // Oracles
@@ -20,6 +21,7 @@ library Mainnet {
     address public constant CHAINLINK_CAD_USD = 0xa34317DB73e77d453b1B8d04550c44D10e981C8e;
     address public constant CHAINLINK_EUR_USD = 0xb49f677943BC038e9857d61E7d053CaA2C1734C1;
     address public constant CHAINLINK_SGD_USD = 0xe25277fF4bbF9081C75Ab0EB13B4A13a721f3E13;
+    address public constant CHAINLINK_TRYB_USD = 0xB09fC5fD3f11Cf9eb5E1C5Dba43114e3C9f477b5;
     
     address public constant CHAINLINK_RAI_USD = 0x3147D7203354Dc06D9fd350c7a2437bcA92387a4; // rai decimal is 18
     address public constant XSGD_USDC_POOL = 0x2baB29a12a9527a179Da88F422cDaaA223A90bD5;
