@@ -5,7 +5,9 @@ libs = ['lib']
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 [rpc_endpoints]
-goerli = "${GOERLI_RPC_URL}"
+# goerli = "${GOERLI_RPC_URL}"
+polygon = "${POLYGON_RPC_URL}"
 
 [etherscan]
-goerli = { key = "${ETHERSCAN_API_KEY}" }
+# goerli = { key = "${ETHERSCAN_API_KEY}" }
+polygon = { key = "${ETHERSCAN_API_KEY}" }

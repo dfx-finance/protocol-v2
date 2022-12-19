@@ -25,4 +25,6 @@ interface IERC20Detailed is IERC20 {
     function decimals() external returns (uint8);
 
     function mint(address account, uint256 amount) external;
+
+    function approve(address spender, uint256 amount) external returns (bool);
 }
