@@ -40,59 +40,59 @@ contract CurveFactoryV2Test is Test {
         newTreasury = new MockUser();
         liquidityProvider = new MockUser();
 
-        // assimilatorFactory = new AssimilatorFactory();
-        // curveFactory = new CurveFactoryV2(
-        //     protocolFee,
-        //     address(treasury),
-        //     address(assimilatorFactory)
-        // );
+        assimilatorFactory = new AssimilatorFactory();
+        curveFactory = new CurveFactoryV2(
+            protocolFee,
+            address(treasury),
+            address(assimilatorFactory)
+        );
 
-        // assimilatorFactory.setCurveFactory(address(curveFactory));
+        assimilatorFactory.setCurveFactory(address(curveFactory));
 
-        // cheats.startPrank(address(treasury));
-        // // Cadc Curve
-        // CurveInfo memory cadcCurveInfo = CurveInfo(
-        //     string.concat("dfx-", cadc.name()),
-        //     string.concat("dfx-", cadc.symbol()),
-        //     address(cadc),
-        //     address(usdc),
-        //     DefaultCurve.BASE_WEIGHT,
-        //     DefaultCurve.QUOTE_WEIGHT,
-        //     cadcOracle,
-        //     cadc.decimals(),
-        //     usdcOracle,
-        //     usdc.decimals(),
-        //     DefaultCurve.ALPHA,
-        //     DefaultCurve.BETA,
-        //     DefaultCurve.MAX,
-        //     DefaultCurve.EPSILON,
-        //     DefaultCurve.LAMBDA
-        // );
+        cheats.startPrank(address(treasury));
+        // Cadc Curve
+        CurveInfo memory cadcCurveInfo = CurveInfo(
+            string.concat("dfx-", cadc.name()),
+            string.concat("dfx-", cadc.symbol()),
+            address(cadc),
+            address(usdc),
+            DefaultCurve.BASE_WEIGHT,
+            DefaultCurve.QUOTE_WEIGHT,
+            cadcOracle,
+            cadc.decimals(),
+            usdcOracle,
+            usdc.decimals(),
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
+        );
 
-        // dfxCadcCurve = curveFactory.newCurve(cadcCurveInfo);
-        // dfxCadcCurve.turnOffWhitelisting();
-        // // Euroc Curve
-        // CurveInfo memory eurocCurveInfo = CurveInfo(
-        //     string.concat("dfx-", euroc.name()),
-        //     string.concat("dfx-", euroc.symbol()),
-        //     address(euroc),
-        //     address(usdc),
-        //     DefaultCurve.BASE_WEIGHT,
-        //     DefaultCurve.QUOTE_WEIGHT,
-        //     eurocOracle,
-        //     euroc.decimals(),
-        //     usdcOracle,
-        //     usdc.decimals(),
-        //     DefaultCurve.ALPHA,
-        //     DefaultCurve.BETA,
-        //     DefaultCurve.MAX,
-        //     DefaultCurve.EPSILON,
-        //     DefaultCurve.LAMBDA
-        // );
+        dfxCadcCurve = curveFactory.newCurve(cadcCurveInfo);
+        dfxCadcCurve.turnOffWhitelisting();
+        // Euroc Curve
+        CurveInfo memory eurocCurveInfo = CurveInfo(
+            string.concat("dfx-", euroc.name()),
+            string.concat("dfx-", euroc.symbol()),
+            address(euroc),
+            address(usdc),
+            DefaultCurve.BASE_WEIGHT,
+            DefaultCurve.QUOTE_WEIGHT,
+            eurocOracle,
+            euroc.decimals(),
+            usdcOracle,
+            usdc.decimals(),
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
+        );
 
-        // dfxEurocCurve = curveFactory.newCurve(eurocCurveInfo);
-        // dfxEurocCurve.turnOffWhitelisting();
-        // cheats.stopPrank();
+        dfxEurocCurve = curveFactory.newCurve(eurocCurveInfo);
+        dfxEurocCurve.turnOffWhitelisting();
+        cheats.stopPrank();
     }
 
     function testFailDuplicatePairs() public {
@@ -282,89 +282,5 @@ contract CurveFactoryV2Test is Test {
 
         dfxEurocCurve.deposit(100_000e18 + _extraAmt, block.timestamp + 60);
         cheats.stopPrank();
-    }
-
-    function test_depositWithdrawals() public {
-        Curve xsgdCurve = Curve(0xdAD7b1656b935959df359464c7f0795c12C5d261);
-       
-        ERC20 xsgdToken = ERC20(0xDC3326e71D45186F113a2F448984CA0e8D201995);
-        ERC20 usdcToken = ERC20(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174);
-
-        deal(address(xsgdToken), address(this), 100_000e18);
-        deal(address(usdcToken), address(this), 100_000e18);
-
-        xsgdToken.approve(address(xsgdCurve), type(uint).max);
-        usdcToken.approve(address(xsgdCurve), type(uint).max);
-
-        // 3 people 
-        xsgdCurve.deposit(
-            1e17,
-            block.timestamp + 60
-        );
-        console.log(xsgdToken.balanceOf(address(xsgdCurve)));
-        console.log(usdcToken.balanceOf(address(xsgdCurve)));
-
-        xsgdCurve.deposit(
-            1e18,
-            block.timestamp + 60
-        );
-        console.log(xsgdToken.balanceOf(address(xsgdCurve)));
-        console.log(usdcToken.balanceOf(address(xsgdCurve)));
-
-        xsgdCurve.withdraw(
-            xsgdCurve.balanceOf(address(this)) - 1000,
-            block.timestamp + 60
-        );
-        console.log(xsgdToken.balanceOf(address(xsgdCurve)));
-        console.log(usdcToken.balanceOf(address(xsgdCurve)));
-
-        xsgdCurve.deposit(
-            1e18,
-            block.timestamp + 60
-        );
-        console.log(xsgdToken.balanceOf(address(xsgdCurve)));
-        console.log(usdcToken.balanceOf(address(xsgdCurve)));
-    }
-
-    function test_depositWithdrawalsCADC() public {
-        Curve cadcCurve = Curve(0xa4FD8BA9BfFF8D0c364EDAD5fDE6E44626097ecF);
-       
-        ERC20 cadcToken = ERC20(0x9de41aFF9f55219D5bf4359F167d1D0c772A396D);
-        ERC20 usdcToken = ERC20(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174);
-
-        deal(address(cadcToken), address(this), 100_000e18);
-        deal(address(usdcToken), address(this), 100_000e18);
-
-        cadcToken.approve(address(cadcCurve), type(uint).max);
-        usdcToken.approve(address(cadcCurve), type(uint).max);
-
-        // 3 people 
-        // cadcCurve.deposit(
-        //     1e17,
-        //     block.timestamp + 60
-        // );
-        // console.log(cadcToken.balanceOf(address(cadcCurve)));
-        // console.log(usdcToken.balanceOf(address(cadcCurve)));
-
-        // cadcCurve.deposit(
-        //     1e18,
-        //     block.timestamp + 60
-        // );
-        // console.log(cadcToken.balanceOf(address(cadcCurve)));
-        // console.log(usdcToken.balanceOf(address(cadcCurve)));
-        cheats.prank(0x207e02cf6f85210A08Cb8943495Be67249C1981A);
-        cadcCurve.withdraw(
-            1099900084188844694,
-            block.timestamp + 60
-        );
-        console.log(cadcToken.balanceOf(address(cadcCurve)));
-        console.log(usdcToken.balanceOf(address(cadcCurve)));
-
-        cadcCurve.deposit(
-            69e18,
-            block.timestamp + 60
-        );
-        console.log(cadcToken.balanceOf(address(cadcCurve)));
-        console.log(usdcToken.balanceOf(address(cadcCurve)));
     }
 }
