@@ -22,14 +22,17 @@ contract ContractScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
+        // Deploy Assimilator
         AssimilatorFactory deployedAssimFactory = new AssimilatorFactory();
 
+        // Deploy CurveFactoryV2
         CurveFactoryV2 deployedCurveFactory = new CurveFactoryV2(
             50_000,
             Polygon.MULTISIG,
             address(deployedAssimFactory)    
         );
 
+        // Attach CurveFactoryV2 to Assimilator
         deployedAssimFactory.setCurveFactory(address(deployedCurveFactory));
 
         IOracle usdOracle = IOracle(Polygon.CHAINLINK_USDC_USD);
@@ -129,6 +132,7 @@ contract ContractScript is Script {
             CurveParams.LAMBDA
         );
 
+        // Deploy all new Curves
         deployedCurveFactory.newCurve(cadcCurveInfo);
         deployedCurveFactory.newCurve(eursCurveInfo);
         deployedCurveFactory.newCurve(xsgdCurveInfo);
