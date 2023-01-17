@@ -95,6 +95,7 @@ contract Zap {
         address _curve,
         uint256 _lpAmount,
         uint256 _deadline,
+        // uint256 _minTokenAmount,
         bool _isFromBase
     ) public returns (uint256) {
         IERC20(_curve).safeTransferFrom(msg.sender, address(this), _lpAmount);
@@ -105,6 +106,7 @@ contract Zap {
             IERC20(base).safeApprove(_curve, 0);
             IERC20(base).safeApprove(_curve, type(uint256).max);
             Curve(_curve).originSwap(base, address(USDC), baseAmount, 0, _deadline);
+            // require(USDC.balanceOf(address(this)) >= _minTokenAmount, "!Unzap/not-enough-token-amount");
             uint256 usdcAmount = USDC.balanceOf(address(this));
             USDC.safeTransfer(msg.sender, usdcAmount);
             return usdcAmount;
@@ -115,6 +117,7 @@ contract Zap {
             USDC.safeApprove(_curve, type(uint256).max);
             Curve(_curve).originSwap(address(USDC), base, usdcAmount, 0, _deadline);
             uint256 baseAmount = IERC20(base).balanceOf(address(this));
+            // require(baseAmount >= _minTokenAmount, "!Unzap/not-enough-token-amount");
             IERC20(base).safeTransfer(msg.sender, baseAmount);
             return baseAmount;
         }
