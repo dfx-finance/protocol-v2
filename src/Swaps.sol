@@ -37,7 +37,11 @@ library Swaps {
         Storage.Curve storage curve,
         address _o,
         address _t
-    ) private view returns (Storage.Assimilator memory, Storage.Assimilator memory) {
+    )
+        private
+        view
+        returns (Storage.Assimilator memory, Storage.Assimilator memory)
+    {
         Storage.Assimilator memory o_ = curve.assimilators[_o];
         Storage.Assimilator memory t_ = curve.assimilators[_t];
 
@@ -47,14 +51,14 @@ library Swaps {
         return (o_, t_);
     }
 
-    function originSwap(Storage.Curve storage curve, OriginSwapData memory _swapData)
-        external
-        returns (
-            uint256 tAmt_
-        )
-    {
-        (Storage.Assimilator memory _o, Storage.Assimilator memory _t) =
-            getOriginAndTarget(curve, _swapData._origin, _swapData._target);
+    function originSwap(
+        Storage.Curve storage curve,
+        OriginSwapData memory _swapData
+    ) external returns (uint256 tAmt_) {
+        (
+            Storage.Assimilator memory _o,
+            Storage.Assimilator memory _t
+        ) = getOriginAndTarget(curve, _swapData._origin, _swapData._target);
 
         if (_o.ix == _t.ix)
             return
@@ -65,23 +69,63 @@ library Swaps {
                 );
 
         SwapInfo memory _swapInfo;
-        (int128 _amt, int128 _oGLiq, int128 _nGLiq, int128[] memory _oBals, int128[] memory _nBals) =
-            getOriginSwapData(curve, _o.ix, _t.ix, _o.addr, _swapData._originAmount);
+        (
+            int128 _amt,
+            int128 _oGLiq,
+            int128 _nGLiq,
+            int128[] memory _oBals,
+            int128[] memory _nBals
+        ) = getOriginSwapData(
+                curve,
+                _o.ix,
+                _t.ix,
+                _o.addr,
+                _swapData._originAmount
+            );
 
         _swapInfo.totalAmount = _amt;
 
-        _amt = CurveMath.calculateTrade(curve, _oGLiq, _nGLiq, _oBals, _nBals, _amt, _t.ix);
+        _amt = CurveMath.calculateTrade(
+            curve,
+            _oGLiq,
+            _nGLiq,
+            _oBals,
+            _nBals,
+            _amt,
+            _t.ix
+        );
 
         _swapInfo.curveFactory = ICurveFactory(_swapData._curveFactory);
         _swapInfo.amountToUser = _amt.us_mul(ONE - curve.epsilon);
-        _swapInfo.totalFee = _swapInfo.totalAmount + _swapInfo.amountToUser;
-        _swapInfo.protocolFeePercentage = _swapInfo.curveFactory.getProtocolFee();
+        // _swapInfo.totalFee = _swapInfo.totalAmount + _swapInfo.amountToUser;
+        _swapInfo.totalFee = _swapInfo.amountToUser - _amt;
+        _swapInfo.protocolFeePercentage = _swapInfo
+            .curveFactory
+            .getProtocolFee();
         _swapInfo.treasury = _swapInfo.curveFactory.getProtocolTreasury();
-        _swapInfo.amountToTreasury = _swapInfo.totalFee.muli(_swapInfo.protocolFeePercentage).divi(100000);
-        Assimilators.transferFee(_t.addr, _swapInfo.amountToTreasury, _swapInfo.treasury);
-        tAmt_ = Assimilators.outputNumeraire(_t.addr, _swapData._recipient, _swapInfo.amountToUser);
+        _swapInfo.amountToTreasury = _swapInfo
+            .totalFee
+            .muli(_swapInfo.protocolFeePercentage)
+            .divi(100000);
+        Assimilators.transferFee(
+            _t.addr,
+            _swapInfo.amountToTreasury,
+            _swapInfo.treasury
+        );
+        tAmt_ = Assimilators.outputNumeraire(
+            _t.addr,
+            _swapData._recipient,
+            _swapInfo.amountToUser
+        );
 
-        emit Trade(msg.sender, _swapData._origin, _swapData._target, _swapData._originAmount, tAmt_, _swapInfo.amountToTreasury);
+        emit Trade(
+            msg.sender,
+            _swapData._origin,
+            _swapData._target,
+            _swapData._originAmount,
+            tAmt_,
+            _swapInfo.amountToTreasury
+        );
     }
 
     function viewOriginSwap(
@@ -90,35 +134,59 @@ library Swaps {
         address _target,
         uint256 _originAmount
     ) external view returns (uint256 tAmt_) {
-        (Storage.Assimilator memory _o, Storage.Assimilator memory _t) = getOriginAndTarget(curve, _origin, _target);
+        (
+            Storage.Assimilator memory _o,
+            Storage.Assimilator memory _t
+        ) = getOriginAndTarget(curve, _origin, _target);
 
         if (_o.ix == _t.ix)
-            return Assimilators.viewRawAmount(_t.addr, Assimilators.viewNumeraireAmount(_o.addr, _originAmount));
+            return
+                Assimilators.viewRawAmount(
+                    _t.addr,
+                    Assimilators.viewNumeraireAmount(_o.addr, _originAmount)
+                );
 
-        (int128 _amt, int128 _oGLiq, int128 _nGLiq, int128[] memory _nBals, int128[] memory _oBals) =
-            viewOriginSwapData(curve, _o.ix, _t.ix, _originAmount, _o.addr);
+        (
+            int128 _amt,
+            int128 _oGLiq,
+            int128 _nGLiq,
+            int128[] memory _nBals,
+            int128[] memory _oBals
+        ) = viewOriginSwapData(curve, _o.ix, _t.ix, _originAmount, _o.addr);
 
-        _amt = CurveMath.calculateTrade(curve, _oGLiq, _nGLiq, _oBals, _nBals, _amt, _t.ix);
+        _amt = CurveMath.calculateTrade(
+            curve,
+            _oGLiq,
+            _nGLiq,
+            _oBals,
+            _nBals,
+            _amt,
+            _t.ix
+        );
 
         _amt = _amt.us_mul(ONE - curve.epsilon);
 
         tAmt_ = Assimilators.viewRawAmount(_t.addr, _amt.abs());
     }
 
-    function targetSwap(Storage.Curve storage curve, TargetSwapData memory _swapData)
-        external
-        returns (
-            uint256 oAmt_
-        )
-    {
-        (Storage.Assimilator memory _o, Storage.Assimilator memory _t) =
-            getOriginAndTarget(curve, _swapData._origin, _swapData._target);
+    function targetSwap(
+        Storage.Curve storage curve,
+        TargetSwapData memory _swapData
+    ) external returns (uint256 oAmt_) {
+        (
+            Storage.Assimilator memory _o,
+            Storage.Assimilator memory _t
+        ) = getOriginAndTarget(curve, _swapData._origin, _swapData._target);
 
         if (_o.ix == _t.ix)
             return
                 Assimilators.intakeNumeraire(
                     _o.addr,
-                    Assimilators.outputRaw(_t.addr, _swapData._recipient, _swapData._targetAmount)
+                    Assimilators.outputRaw(
+                        _t.addr,
+                        _swapData._recipient,
+                        _swapData._targetAmount
+                    )
                 );
 
         // If the origin is the quote currency (i.e. usdc)
@@ -131,12 +199,34 @@ library Swaps {
         // curve.assets[1].addr = quoteCurrency
         // no variable assignment due to stack too deep
         if (curve.assets[1].addr == _o.addr) {
-            _swapData._targetAmount = _swapData._targetAmount.mul(1e8).div(Assimilators.getRate(_t.addr));
+            _swapData._targetAmount = _swapData._targetAmount.mul(1e8).div(
+                Assimilators.getRate(_t.addr)
+            );
         }
-        (int128 _amt, int128 _oGLiq, int128 _nGLiq, int128[] memory _oBals, int128[] memory _nBals) =
-            getTargetSwapData(curve, _t.ix, _o.ix, _t.addr, _swapData._recipient, _swapData._targetAmount);
+        (
+            int128 _amt,
+            int128 _oGLiq,
+            int128 _nGLiq,
+            int128[] memory _oBals,
+            int128[] memory _nBals
+        ) = getTargetSwapData(
+                curve,
+                _t.ix,
+                _o.ix,
+                _t.addr,
+                _swapData._recipient,
+                _swapData._targetAmount
+            );
 
-        _amt = CurveMath.calculateTrade(curve, _oGLiq, _nGLiq, _oBals, _nBals, _amt, _o.ix);
+        _amt = CurveMath.calculateTrade(
+            curve,
+            _oGLiq,
+            _nGLiq,
+            _oBals,
+            _nBals,
+            _amt,
+            _o.ix
+        );
 
         // If the origin is the quote currency (i.e. usdc)
         // we need to make sure to massage the _amt too
@@ -152,15 +242,31 @@ library Swaps {
         _swapInfo.curveFactory = ICurveFactory(_swapData._curveFactory);
         _swapInfo.amountToUser = _amt.us_mul(ONE + curve.epsilon);
         _swapInfo.totalFee = _swapInfo.amountToUser - _amt;
-        _swapInfo.protocolFeePercentage = _swapInfo.curveFactory.getProtocolFee();
+        _swapInfo.protocolFeePercentage = _swapInfo
+            .curveFactory
+            .getProtocolFee();
         _swapInfo.treasury = _swapInfo.curveFactory.getProtocolTreasury();
-        _swapInfo.amountToTreasury = _swapInfo.totalFee.muli(_swapInfo.protocolFeePercentage).divi(100000);
+        _swapInfo.amountToTreasury = _swapInfo
+            .totalFee
+            .muli(_swapInfo.protocolFeePercentage)
+            .divi(100000);
 
-        Assimilators.transferFee(_o.addr, _swapInfo.amountToTreasury, _swapInfo.treasury);
+        Assimilators.transferFee(
+            _o.addr,
+            _swapInfo.amountToTreasury,
+            _swapInfo.treasury
+        );
 
         oAmt_ = Assimilators.intakeNumeraire(_o.addr, _swapInfo.amountToUser);
 
-        emit Trade(msg.sender, _swapData._origin, _swapData._target, oAmt_, _swapData._targetAmount, _swapInfo.amountToTreasury);
+        emit Trade(
+            msg.sender,
+            _swapData._origin,
+            _swapData._target,
+            oAmt_,
+            _swapData._targetAmount,
+            _swapInfo.amountToTreasury
+        );
     }
 
     function viewTargetSwap(
@@ -169,10 +275,17 @@ library Swaps {
         address _target,
         uint256 _targetAmount
     ) external view returns (uint256 oAmt_) {
-        (Storage.Assimilator memory _o, Storage.Assimilator memory _t) = getOriginAndTarget(curve, _origin, _target);
+        (
+            Storage.Assimilator memory _o,
+            Storage.Assimilator memory _t
+        ) = getOriginAndTarget(curve, _origin, _target);
 
         if (_o.ix == _t.ix)
-            return Assimilators.viewRawAmount(_o.addr, Assimilators.viewNumeraireAmount(_t.addr, _targetAmount));
+            return
+                Assimilators.viewRawAmount(
+                    _o.addr,
+                    Assimilators.viewNumeraireAmount(_t.addr, _targetAmount)
+                );
 
         // If the origin is the quote currency (i.e. usdc)
         // we need to make sure to massage the _targetAmount
@@ -184,13 +297,28 @@ library Swaps {
         // curve.assets[1].addr = quoteCurrency
         // no variable assignment due to stack too deep
         if (curve.assets[1].addr == _o.addr) {
-            _targetAmount = _targetAmount.mul(1e8).div(Assimilators.getRate(_t.addr));
+            _targetAmount = _targetAmount.mul(1e8).div(
+                Assimilators.getRate(_t.addr)
+            );
         }
 
-        (int128 _amt, int128 _oGLiq, int128 _nGLiq, int128[] memory _nBals, int128[] memory _oBals) =
-            viewTargetSwapData(curve, _t.ix, _o.ix, _targetAmount, _t.addr);
+        (
+            int128 _amt,
+            int128 _oGLiq,
+            int128 _nGLiq,
+            int128[] memory _nBals,
+            int128[] memory _oBals
+        ) = viewTargetSwapData(curve, _t.ix, _o.ix, _targetAmount, _t.addr);
 
-        _amt = CurveMath.calculateTrade(curve, _oGLiq, _nGLiq, _oBals, _nBals, _amt, _o.ix);
+        _amt = CurveMath.calculateTrade(
+            curve,
+            _oGLiq,
+            _nGLiq,
+            _oBals,
+            _nBals,
+            _amt,
+            _o.ix
+        );
 
         // If the origin is the quote currency (i.e. usdc)
         // we need to make sure to massage the _amt too
@@ -228,10 +356,16 @@ library Swaps {
         Storage.Assimilator[] memory _reserves = curve.assets;
 
         for (uint256 i = 0; i < _length; i++) {
-            if (i != _inputIx) nBals_[i] = oBals_[i] = Assimilators.viewNumeraireBalance(_reserves[i].addr);
+            if (i != _inputIx)
+                nBals_[i] = oBals_[i] = Assimilators.viewNumeraireBalance(
+                    _reserves[i].addr
+                );
             else {
                 int128 _bal;
-                (amt_, _bal) = Assimilators.intakeRawAndGetBalance(_assim, _amt);
+                (amt_, _bal) = Assimilators.intakeRawAndGetBalance(
+                    _assim,
+                    _amt
+                );
 
                 oBals_[i] = _bal.sub(amt_);
                 nBals_[i] = _bal;
@@ -271,10 +405,17 @@ library Swaps {
         Storage.Assimilator[] memory _reserves = curve.assets;
 
         for (uint256 i = 0; i < _length; i++) {
-            if (i != _inputIx) nBals_[i] = oBals_[i] = Assimilators.viewNumeraireBalance(_reserves[i].addr);
+            if (i != _inputIx)
+                nBals_[i] = oBals_[i] = Assimilators.viewNumeraireBalance(
+                    _reserves[i].addr
+                );
             else {
                 int128 _bal;
-                (amt_, _bal) = Assimilators.outputRawAndGetBalance(_assim, _recipient, _amt);
+                (amt_, _bal) = Assimilators.outputRawAndGetBalance(
+                    _assim,
+                    _recipient,
+                    _amt
+                );
 
                 oBals_[i] = _bal.sub(amt_);
                 nBals_[i] = _bal;
@@ -312,10 +453,16 @@ library Swaps {
         int128[] memory oBals_ = new int128[](_length);
 
         for (uint256 i = 0; i < _length; i++) {
-            if (i != _inputIx) nBals_[i] = oBals_[i] = Assimilators.viewNumeraireBalance(curve.assets[i].addr);
+            if (i != _inputIx)
+                nBals_[i] = oBals_[i] = Assimilators.viewNumeraireBalance(
+                    curve.assets[i].addr
+                );
             else {
                 int128 _bal;
-                (amt_, _bal) = Assimilators.viewNumeraireAmountAndBalance(_assim, _amt);
+                (amt_, _bal) = Assimilators.viewNumeraireAmountAndBalance(
+                    _assim,
+                    _amt
+                );
 
                 oBals_[i] = _bal;
                 nBals_[i] = _bal.add(amt_);
@@ -353,10 +500,16 @@ library Swaps {
         int128[] memory oBals_ = new int128[](_length);
 
         for (uint256 i = 0; i < _length; i++) {
-            if (i != _inputIx) nBals_[i] = oBals_[i] = Assimilators.viewNumeraireBalance(curve.assets[i].addr);
+            if (i != _inputIx)
+                nBals_[i] = oBals_[i] = Assimilators.viewNumeraireBalance(
+                    curve.assets[i].addr
+                );
             else {
                 int128 _bal;
-                (amt_, _bal) = Assimilators.viewNumeraireAmountAndBalance(_assim, _amt);
+                (amt_, _bal) = Assimilators.viewNumeraireAmountAndBalance(
+                    _assim,
+                    _amt
+                );
                 amt_ = amt_.neg();
 
                 oBals_[i] = _bal;
