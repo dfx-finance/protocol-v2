@@ -24,7 +24,7 @@ import ".././lib/MockToken.sol";
 
 import ".././utils/Utils.sol";
 
-contract V2Test is Test {
+contract FeeTest is Test {
     using SafeMath for uint256;
     CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
     Utils utils;
