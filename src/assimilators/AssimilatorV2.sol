@@ -123,9 +123,9 @@ contract AssimilatorV2 is IAssimilator {
 
         uint256 _balance = token.balanceOf(address(this));
 
-        amount_ = _tokenAmount.divu(10**tokenDecimals);
+        balance_ = _tokenAmount.divu(10**tokenDecimals); // ABDKMATH64x64 form NOT numeraire
 
-        balance_ = ((_balance * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
+        amount_ = ((_balance * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
     }
 
     // takes a raw amount of eurs and transfers it out, returns numeraire value of the raw amount
