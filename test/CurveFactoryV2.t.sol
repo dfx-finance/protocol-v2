@@ -309,7 +309,7 @@ contract CurveFactoryV2Test is Test {
         // CADC is worth 1.9 USDC right here
         uint256 price = 191427874;
         // this is like 500k of USDC (249k * 1.9)
-        uint256 router_amounts = 495e6;
+        uint256 router_amounts = 490_000e6;
         // uint256 amounts = 249741_435_547_872_736_176_450;
         uint256 amounts = 250_000e18;
         
@@ -334,7 +334,7 @@ contract CurveFactoryV2Test is Test {
         cheats.stopPrank();
         
         cheats.startPrank(address(swapper));
-        deal(address(usdc), address(swapper), 1_500_000e6);
+        // deal(address(usdc), address(swapper), 1_500_000e6);
         deal(address(cadc), address(swapper), 1_500_000e18);
         emit log_named_uint("CADC balance of swapper before", cadc.balanceOf(address(swapper)) / 1e18); 
         emit log_named_uint("USDC balance of swapper before", usdc.balanceOf(address(swapper)) / 1e6);
@@ -352,8 +352,14 @@ contract CurveFactoryV2Test is Test {
         // router.originSwap(address(usdc), address(usdc), address(cadc), router_amounts, 0, block.timestamp + 60);
         // router.originSwap(address(usdc), address(cadc), address(usdc), cadc.balanceOf(address(swapper)), 0, block.timestamp + 60);
         
-        uint256 amountReal = dfxCadcCurve.targetSwap(address(usdc), address(cadc), type(uint256).max, router_amounts, block.timestamp + 60);
+        // TARGET CADC amounts should be in cadc
+        // uint256 amountReal = dfxCadcCurve.targetSwap(address(usdc), address(cadc), type(uint256).max, amounts, block.timestamp + 60);
         // uint256 amountRecv = dfxCadcCurve.originSwap(address(cadc), address(usdc), cadc.balanceOf(address(swapper)), 0, block.timestamp + 60);
+
+        // TARGET USDC amounts should be in usdc
+        uint256 amountReal = dfxCadcCurve.targetSwap(address(cadc), address(usdc), type(uint256).max, router_amounts, block.timestamp + 60);
+        uint256 amountRecv = dfxCadcCurve.originSwap(address(usdc), address(cadc), usdc.balanceOf(address(swapper)), 0, block.timestamp + 60);
+
         cheats.stopPrank();
         
         emit log_named_uint("CADC balance of swapper after", cadc.balanceOf(address(swapper)) / 1e18);

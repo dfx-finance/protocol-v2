@@ -120,7 +120,7 @@ contract AssimilatorV2 is IAssimilator, Test {
 
         uint256 _rate = getRate();
             
-        uint256 _amount = 250_000e18;
+        // uint256 _amount = 250_000e18;
         // uint256 _tokenAmount = ((_amount) * _rate) / 10**oracleDecimals;
 
         token.safeTransfer(_dst, _amount);
