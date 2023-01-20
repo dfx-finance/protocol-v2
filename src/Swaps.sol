@@ -31,6 +31,12 @@ library Swaps {
         int128 rawProtocolFee
     );
 
+    event TestTargetSwap(
+        int128 oGLiq,
+        int128 nGLiq,
+        int128 amt
+    );
+
     int128 public constant ONE = 0x10000000000000000;
 
     function getOriginAndTarget(
@@ -136,6 +142,8 @@ library Swaps {
         (int128 _amt, int128 _oGLiq, int128 _nGLiq, int128[] memory _oBals, int128[] memory _nBals) =
             getTargetSwapData(curve, _t.ix, _o.ix, _t.addr, _swapData._recipient, _swapData._targetAmount);
 
+        emit TestTargetSwap(_oGLiq, _nGLiq, _amt);
+        
         _amt = CurveMath.calculateTrade(curve, _oGLiq, _nGLiq, _oBals, _nBals, _amt, _o.ix);
 
         // If the origin is the quote currency (i.e. usdc)
