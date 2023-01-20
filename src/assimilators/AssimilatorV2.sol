@@ -110,7 +110,9 @@ contract AssimilatorV2 is IAssimilator {
     // takes a numeraire amount, calculates the raw amount of eurs, transfers it in and returns the corresponding raw amount
     function intakeNumeraireLPRatio(
         uint256 _baseWeight,
+        uint256 _minBaseAmount,
         uint256 _quoteWeight,
+        uint256 _minQuoteAmount,
         address _addr,
         int128 _amount
     ) external override returns (uint256 amount_) {
@@ -129,6 +131,12 @@ contract AssimilatorV2 is IAssimilator {
         amount_ =
             (_amount.mulu((1e6)) * _quoteWeight * token.balanceOf(_addr)) /
             (usdc.balanceOf(_addr) * _baseWeight);
+
+        if (address(token) == address(usdc)) {
+            require(amount_ >= _minQuoteAmount, "");
+        } else {
+            require(amount_ >= _minBaseAmount, "");
+        }
 
         token.safeTransferFrom(msg.sender, address(this), amount_);
     }

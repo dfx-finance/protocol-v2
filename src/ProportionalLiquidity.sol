@@ -21,17 +21,22 @@ library ProportionalLiquidity {
     int128 public constant ONE = 0x10000000000000000;
     int128 public constant ONE_WEI = 0x12;
 
-    function proportionalDeposit(Storage.Curve storage curve, uint256 _deposit)
-        external
-        returns (uint256 curves_, uint256[] memory)
-    {
+    function proportionalDeposit(
+        Storage.Curve storage curve,
+        uint256 _deposit,
+        uint256 _minQuoteAmount,
+        uint256 _minBaseAmount
+    ) external returns (uint256 curves_, uint256[] memory) {
         int128 __deposit = _deposit.divu(1e18);
 
         uint256 _length = curve.assets.length;
 
         uint256[] memory deposits_ = new uint256[](_length);
 
-        (int128 _oGLiq, int128[] memory _oBals) = getGrossLiquidityAndBalancesForDeposit(curve);
+        (
+            int128 _oGLiq,
+            int128[] memory _oBals
+        ) = getGrossLiquidityAndBalancesForDeposit(curve);
 
         // Needed to calculate liquidity invariant
         // (int128 _oGLiqProp, int128[] memory _oBalsProp) = getGrossLiquidityAndBalances(curve);
@@ -41,7 +46,10 @@ library ProportionalLiquidity {
             for (uint256 i = 0; i < _length; i++) {
                 // Variable here to avoid stack-too-deep errors
                 int128 _d = __deposit.mul(curve.weights[i]);
-                deposits_[i] = Assimilators.intakeNumeraire(curve.assets[i].addr, _d.add(ONE_WEI));
+                deposits_[i] = Assimilators.intakeNumeraire(
+                    curve.assets[i].addr,
+                    _d.add(ONE_WEI)
+                );
             }
         } else {
             // We already have an existing pool ratio
@@ -55,7 +63,9 @@ library ProportionalLiquidity {
                 deposits_[i] = Assimilators.intakeNumeraireLPRatio(
                     curve.assets[i].addr,
                     _baseWeight,
+                    _minBaseAmount,
                     _quoteWeight,
+                    _minQuoteAmount,
                     _oBals[i].mul(_multiplier).add(ONE_WEI)
                 );
             }
@@ -75,16 +85,18 @@ library ProportionalLiquidity {
         return (curves_, deposits_);
     }
 
-    function viewProportionalDeposit(Storage.Curve storage curve, uint256 _deposit)
-        external
-        view
-        returns (uint256 curves_, uint256[] memory)
-    {
+    function viewProportionalDeposit(
+        Storage.Curve storage curve,
+        uint256 _deposit
+    ) external view returns (uint256 curves_, uint256[] memory) {
         int128 __deposit = _deposit.divu(1e18);
 
         uint256 _length = curve.assets.length;
 
-        (int128 _oGLiq, int128[] memory _oBals) = getGrossLiquidityAndBalancesForDeposit(curve);
+        (
+            int128 _oGLiq,
+            int128[] memory _oBals
+        ) = getGrossLiquidityAndBalancesForDeposit(curve);
 
         uint256[] memory deposits_ = new uint256[](_length);
 
@@ -129,10 +141,10 @@ library ProportionalLiquidity {
         return (curves_, deposits_);
     }
 
-    function proportionalWithdraw(Storage.Curve storage curve, uint256 _withdrawal)
-        external
-        returns (uint256[] memory)
-    {
+    function proportionalWithdraw(
+        Storage.Curve storage curve,
+        uint256 _withdrawal
+    ) external returns (uint256[] memory) {
         uint256 _length = curve.assets.length;
 
         (, int128[] memory _oBals) = getGrossLiquidityAndBalances(curve);
@@ -157,21 +169,25 @@ library ProportionalLiquidity {
         return withdrawals_;
     }
 
-    function viewProportionalWithdraw(Storage.Curve storage curve, uint256 _withdrawal)
-        external
-        view
-        returns (uint256[] memory)
-    {
+    function viewProportionalWithdraw(
+        Storage.Curve storage curve,
+        uint256 _withdrawal
+    ) external view returns (uint256[] memory) {
         uint256 _length = curve.assets.length;
 
         (, int128[] memory _oBals) = getGrossLiquidityAndBalances(curve);
 
         uint256[] memory withdrawals_ = new uint256[](_length);
 
-        int128 _multiplier = _withdrawal.divu(1e18).div(curve.totalSupply.divu(1e18));
+        int128 _multiplier = _withdrawal.divu(1e18).div(
+            curve.totalSupply.divu(1e18)
+        );
 
         for (uint256 i = 0; i < _length; i++) {
-            withdrawals_[i] = Assimilators.viewRawAmount(curve.assets[i].addr, _oBals[i].mul(_multiplier));
+            withdrawals_[i] = Assimilators.viewRawAmount(
+                curve.assets[i].addr,
+                _oBals[i].mul(_multiplier)
+            );
         }
 
         return withdrawals_;
@@ -189,7 +205,11 @@ library ProportionalLiquidity {
         uint256 _quoteWeight = curve.weights[1].mulu(1e18);
 
         for (uint256 i = 0; i < _length; i++) {
-            int128 _bal = Assimilators.viewNumeraireBalanceLPRatio(_baseWeight, _quoteWeight, curve.assets[i].addr);
+            int128 _bal = Assimilators.viewNumeraireBalanceLPRatio(
+                _baseWeight,
+                _quoteWeight,
+                curve.assets[i].addr
+            );
 
             balances_[i] = _bal;
             grossLiquidity_ += _bal;
@@ -208,7 +228,9 @@ library ProportionalLiquidity {
         int128[] memory balances_ = new int128[](_length);
 
         for (uint256 i = 0; i < _length; i++) {
-            int128 _bal = Assimilators.viewNumeraireBalance(curve.assets[i].addr);
+            int128 _bal = Assimilators.viewNumeraireBalance(
+                curve.assets[i].addr
+            );
 
             balances_[i] = _bal;
             grossLiquidity_ += _bal;

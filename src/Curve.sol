@@ -708,7 +708,12 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     ///                  the numeraire assets of the pool
     /// @return ( the amount of curves you receive in return for your deposit,
     ///           the amount deposited for each numeraire)
-    function deposit(uint256 _deposit, uint256 _deadline)
+    function deposit(
+        uint256 _deposit,
+        uint256 _minAmountQuote,
+        uint256 _minAmountBase,
+        uint256 _deadline
+    )
         external
         deadline(_deadline)
         globallyTransactable
