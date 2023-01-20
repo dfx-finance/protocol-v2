@@ -137,13 +137,13 @@ library Swaps {
         // curve.assets[1].addr = quoteCurrency
         // no variable assignment due to stack too deep
         if (curve.assets[1].addr == _o.addr) {
-            _swapData._targetAmount = _swapData._targetAmount.mul(1e8).div(Assimilators.getRate(_t.addr));
+            // _swapData._targetAmount = _swapData._targetAmount.mul(1e8).div(Assimilators.getRate(_t.addr));
         }
         (int128 _amt, int128 _oGLiq, int128 _nGLiq, int128[] memory _oBals, int128[] memory _nBals) =
             getTargetSwapData(curve, _t.ix, _o.ix, _t.addr, _swapData._recipient, _swapData._targetAmount);
 
         emit TestTargetSwap(_oGLiq, _nGLiq, _amt);
-        
+
         _amt = CurveMath.calculateTrade(curve, _oGLiq, _nGLiq, _oBals, _nBals, _amt, _o.ix);
 
         // If the origin is the quote currency (i.e. usdc)
@@ -151,7 +151,7 @@ library Swaps {
 
         // curve.assets[1].addr = quoteCurrency
         if (curve.assets[1].addr == _o.addr) {
-            _amt = _amt.mul(Assimilators.getRate(_t.addr).divu(1e8));
+            // _amt = _amt.mul(Assimilators.getRate(_t.addr).divu(1e8));
         }
 
         SwapInfo memory _swapInfo;

