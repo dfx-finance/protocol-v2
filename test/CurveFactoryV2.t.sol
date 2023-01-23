@@ -309,7 +309,7 @@ contract CurveFactoryV2Test is Test {
         // CADC is worth 1.9 USDC right here
         uint256 price = 191427874;
         // this is like 500k of USDC (249k * 1.9)
-        uint256 router_amounts = 490_000e6;
+        uint256 router_amounts = 490_00e6;
         // uint256 amounts = 249741_435_547_872_736_176_450;
         uint256 amounts = 250_000e18;
         
@@ -358,7 +358,7 @@ contract CurveFactoryV2Test is Test {
 
         // TARGET USDC amounts should be in usdc
         uint256 amountReal = dfxCadcCurve.targetSwap(address(cadc), address(usdc), type(uint256).max, router_amounts, block.timestamp + 60);
-        uint256 amountRecv = dfxCadcCurve.originSwap(address(usdc), address(cadc), usdc.balanceOf(address(swapper)), 0, block.timestamp + 60);
+        // uint256 amountRecv = dfxCadcCurve.originSwap(address(usdc), address(cadc), usdc.balanceOf(address(swapper)), 0, block.timestamp + 60);
 
         cheats.stopPrank();
         
