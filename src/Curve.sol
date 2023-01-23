@@ -464,6 +464,21 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         );
     }
 
+    function setAssimilator(
+        address _numeraire,
+        address _numeraireAssim,
+        address _reserve,
+        address _reserveAssim
+    ) external onlyOwner {
+        Orchestrator.setAssimilator(
+            curve,
+            _numeraire,
+            _numeraireAssim,
+            _reserve,
+            _reserveAssim
+        );
+    }
+
     /// @notice excludes an assimilator from the curve
     /// @param _derivative the address of the assimilator to exclude
     function excludeDerivative(address _derivative) external onlyOwner {

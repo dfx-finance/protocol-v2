@@ -190,16 +190,16 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
 
         // Base Currency
         _assets[0] = _info._baseCurrency;
-        _assets[1] = address(_baseAssim);
+        _assets[1] = address(_baseAssim); // change assim
         _assets[2] = _info._baseCurrency;
-        _assets[3] = address(_baseAssim);
+        _assets[3] = address(_baseAssim); // change assim
         _assets[4] = _info._baseCurrency;
 
         // Quote Currency (typically USDC)
         _assets[5] = _info._quoteCurrency;
-        _assets[6] = address(_quoteAssim);
+        _assets[6] = address(_quoteAssim); // change assim
         _assets[7] = _info._quoteCurrency;
-        _assets[8] = address(_quoteAssim);
+        _assets[8] = address(_quoteAssim); // change assim
         _assets[9] = _info._quoteCurrency;
 
         // Weights
