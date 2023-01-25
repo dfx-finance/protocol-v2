@@ -293,7 +293,7 @@ contract AssimilatorV2 is IAssimilator {
     ) external view override returns (int128 balance_) {
         uint256 _tokenBal = token.balanceOf(_addr);
 
-        // if (_tokenBal <= 0) return ABDKMath64x64.fromUInt(0);
+        if (_tokenBal <= 0) return ABDKMath64x64.fromUInt(0);
 
         // uint256 _usdcBal = usdc.balanceOf(_addr).mul(1e18).div(_quoteWeight);
 
@@ -303,8 +303,10 @@ contract AssimilatorV2 is IAssimilator {
         // );
 
         // balance_ = ((_tokenBal * _rate) / 1e6).divu(1e18);
-        uint256 balance = (_tokenBal * usdc.balanceOf(_addr) * _baseWeight) /
-            (_quoteWeight * 1e6);
+        // uint256 balance = (_tokenBal * usdc.balanceOf(_addr) * _baseWeight) /
+        //     (_quoteWeight * 1e6);
+        uint256 balance = (usdc.balanceOf(_addr) * _baseWeight) /
+            (1e6 * _quoteWeight);
         balance_ = balance.fromUInt();
     }
 

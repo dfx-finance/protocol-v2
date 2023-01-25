@@ -274,11 +274,28 @@ library ProportionalLiquidity {
         address account,
         uint256 amount
     ) private {
-        curve.totalSupply = mintAdd(curve.totalSupply, amount);
-
-        curve.balances[account] = mintAdd(curve.balances[account], amount);
-
-        emit Transfer(address(0), msg.sender, amount);
+        require(amount > 1000, "Proportional Liquidity/amount too small!");
+        if (curve.totalSupply == 0) {
+            uint256 toMintAmt = amount - 1000;
+            // mint to lp provider
+            curve.totalSupply = mintAdd(curve.totalSupply, toMintAmt);
+            curve.balances[account] = mintAdd(
+                curve.balances[account],
+                toMintAmt
+            );
+            emit Transfer(address(0), msg.sender, toMintAmt);
+            // mint to 0 address
+            curve.totalSupply = mintAdd(curve.totalSupply, 1000);
+            curve.balances[address(0)] = mintAdd(
+                curve.balances[address(0)],
+                1000
+            );
+            emit Transfer(address(this), address(0), 1000);
+        } else {
+            curve.totalSupply = mintAdd(curve.totalSupply, amount);
+            curve.balances[account] = mintAdd(curve.balances[account], amount);
+            emit Transfer(address(0), msg.sender, amount);
+        }
     }
 
     function mintAdd(uint256 x, uint256 y) private pure returns (uint256 z) {
