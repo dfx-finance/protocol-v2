@@ -44,22 +44,26 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
     bool public flashable = false;
 
     bool public globalGuarded = false;
-    mapping (address => bool) public poolGuarded;
+    mapping(address => bool) public poolGuarded;
 
     uint256 public globalGuardAmt;
-    mapping (address => uint256) public poolGuardAmt;
-    mapping (address => uint256) public poolCapAmt;
-    
+    mapping(address => uint256) public poolGuardAmt;
+    mapping(address => uint256) public poolCapAmt;
+
     event GlobalFrozenSet(bool isFrozen);
     event FlashableSet(bool isFlashable);
     event TreasuryUpdated(address indexed newTreasury);
     event ProtocolFeeUpdated(address indexed treasury, int128 indexed fee);
-    event NewCurve(address indexed caller, bytes32 indexed id, address indexed curve);
+    event NewCurve(
+        address indexed caller,
+        bytes32 indexed id,
+        address indexed curve
+    );
     event GlobalGuardSet(bool isGuarded);
-    event GlobalGuardAmountSet (uint256 amount);
-    event PoolGuardSet (address indexed pool, bool isGuarded);
-    event PoolGuardAmountSet (address indexed pool, uint256 guardAmount);
-    event PoolCapSet (address indexed pool, uint256 cap);
+    event GlobalGuardAmountSet(uint256 amount);
+    event PoolGuardSet(address indexed pool, bool isGuarded);
+    event PoolGuardAmountSet(address indexed pool, uint256 guardAmount);
+    event PoolCapSet(address indexed pool, uint256 cap);
 
     mapping(bytes32 => address) public curves;
 
@@ -68,19 +72,31 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         address _treasury,
         address _assimFactory
     ) {
-        require(totoalFeePercentage >= _protocolFee, "CurveFactory/fee-cant-be-over-100%");
+        require(
+            totoalFeePercentage >= _protocolFee,
+            "CurveFactory/fee-cant-be-over-100%"
+        );
         require(_treasury != address(0), "CurveFactory/zero-address");
         protocolFee = _protocolFee;
         protocolTreasury = _treasury;
 
-        require(_assimFactory.isContract(), "CurveFactory/invalid-assimFactory");
+        require(
+            _assimFactory.isContract(),
+            "CurveFactory/invalid-assimFactory"
+        );
         assimilatorFactory = IAssimilatorFactory(_assimFactory);
     }
 
-    function getGlobalFrozenState() external view virtual override returns (bool) {
+    function getGlobalFrozenState()
+        external
+        view
+        virtual
+        override
+        returns (bool)
+    {
         return globalFrozen;
     }
-    
+
     function getFlashableState() external view virtual override returns (bool) {
         return flashable;
     }
@@ -89,7 +105,13 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         return protocolFee;
     }
 
-    function getProtocolTreasury() external view virtual override returns (address) {
+    function getProtocolTreasury()
+        external
+        view
+        virtual
+        override
+        returns (address)
+    {
         return protocolTreasury;
     }
 
@@ -99,53 +121,61 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         globalFrozen = _toFreezeOrNotToFreeze;
     }
 
-    function toggleGlobalGuarded () external onlyOwner {
+    function toggleGlobalGuarded() external onlyOwner {
         globalGuarded = !globalGuarded;
         emit GlobalGuardSet(globalGuarded);
     }
 
-    function setPoolGuarded (address pool, bool guarded ) external onlyOwner {
+    function setPoolGuarded(address pool, bool guarded) external onlyOwner {
         poolGuarded[pool] = guarded;
         emit PoolGuardSet(pool, guarded);
     }
 
-    function setGlobalGuardAmount (uint256 amount) external onlyOwner {
+    function setGlobalGuardAmount(uint256 amount) external onlyOwner {
         globalGuardAmt = amount;
-        emit GlobalGuardAmountSet (globalGuardAmt);
+        emit GlobalGuardAmountSet(globalGuardAmt);
     }
 
-    function setPoolCap (address pool, uint256 cap) external onlyOwner {
+    function setPoolCap(address pool, uint256 cap) external onlyOwner {
         poolCapAmt[pool] = cap;
         emit PoolCapSet(pool, cap);
     }
 
-    function setPoolGuardAmount (address pool, uint256 amount) external onlyOwner {
+    function setPoolGuardAmount(address pool, uint256 amount)
+        external
+        onlyOwner
+    {
         poolGuardAmt[pool] = amount;
         emit PoolGuardAmountSet(pool, amount);
     }
 
-    function isPoolGuarded (address pool) external view override returns (bool) {
+    function isPoolGuarded(address pool) external view override returns (bool) {
         bool _poolGuarded = poolGuarded[pool];
-        if(!_poolGuarded){
+        if (!_poolGuarded) {
             return globalGuarded;
-        }else{
+        } else {
             return true;
         }
     }
 
-    function getPoolGuardAmount (address pool) external view override returns (uint256) {
+    function getPoolGuardAmount(address pool)
+        external
+        view
+        override
+        returns (uint256)
+    {
         uint256 _poolGuardAmt = poolGuardAmt[pool];
-        if(_poolGuardAmt == 0) {
+        if (_poolGuardAmt == 0) {
             return globalGuardAmt;
-        }else{
+        } else {
             return _poolGuardAmt;
         }
     }
 
-    function getPoolCap (address pool) external view override returns (uint256) {
+    function getPoolCap(address pool) external view override returns (uint256) {
         return poolCapAmt[pool];
     }
-    
+
     function setFlashable(bool _toFlashOrNotToFlash) external onlyOwner {
         emit FlashableSet(_toFlashOrNotToFlash);
 
@@ -153,36 +183,58 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
     }
 
     function updateProtocolTreasury(address _newTreasury) external onlyOwner {
-        require(_newTreasury != protocolTreasury, "CurveFactory/same-treasury-address");
+        require(
+            _newTreasury != protocolTreasury,
+            "CurveFactory/same-treasury-address"
+        );
         require(_newTreasury != address(0), "CurveFactory/zero-address");
         protocolTreasury = _newTreasury;
         emit TreasuryUpdated(protocolTreasury);
     }
 
     function updateProtocolFee(int128 _newFee) external onlyOwner {
-        require(totoalFeePercentage >= _newFee, "CurveFactory/fee-cant-be-over-100%");
+        require(
+            totoalFeePercentage >= _newFee,
+            "CurveFactory/fee-cant-be-over-100%"
+        );
         require(_newFee != protocolFee, "CurveFactory/same-protocol-fee");
         protocolFee = _newFee;
         emit ProtocolFeeUpdated(protocolTreasury, protocolFee);
     }
 
-    function getCurve(address _baseCurrency, address _quoteCurrency) external view returns (address) {
+    function getCurve(address _baseCurrency, address _quoteCurrency)
+        external
+        view
+        returns (address)
+    {
         bytes32 curveId = keccak256(abi.encode(_baseCurrency, _quoteCurrency));
         return (curves[curveId]);
     }
 
     function newCurve(CurveInfo memory _info) public returns (Curve) {
-        bytes32 curveId = keccak256(abi.encode(_info._baseCurrency, _info._quoteCurrency));
+        bytes32 curveId = keccak256(
+            abi.encode(_info._baseCurrency, _info._quoteCurrency)
+        );
         if (curves[curveId] != address(0)) revert("CurveFactory/pair-exists");
         AssimilatorV2 _baseAssim;
         _baseAssim = (assimilatorFactory.getAssimilator(_info._baseCurrency));
         if (address(_baseAssim) == address(0))
-            _baseAssim = (assimilatorFactory.newAssimilator(_info._baseOracle, _info._baseCurrency, _info._baseDec));
+            _baseAssim = (
+                assimilatorFactory.newAssimilator(
+                    _info._baseOracle,
+                    _info._baseCurrency,
+                    _info._baseDec
+                )
+            );
         AssimilatorV2 _quoteAssim;
         _quoteAssim = (assimilatorFactory.getAssimilator(_info._quoteCurrency));
         if (address(_quoteAssim) == address(0))
             _quoteAssim = (
-                assimilatorFactory.newAssimilator(_info._quoteOracle, _info._quoteCurrency, _info._quoteDec)
+                assimilatorFactory.newAssimilator(
+                    _info._quoteOracle,
+                    _info._quoteCurrency,
+                    _info._quoteDec
+                )
             );
 
         address[] memory _assets = new address[](10);
@@ -207,7 +259,13 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         _assetWeights[1] = _info._quoteWeight;
 
         // New curve
-        Curve curve = new Curve(_info._name, _info._symbol, _assets, _assetWeights, address(this));
+        Curve curve = new Curve(
+            _info._name,
+            _info._symbol,
+            _assets,
+            _assetWeights,
+            address(this)
+        );
         curve.setParams(
             _info._alpha,
             _info._beta,
@@ -215,7 +273,6 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
             _info._epsilon,
             _info._lambda
         );
-        curve.turnOffWhitelisting();
         curve.transferOwnership(protocolTreasury);
         curves[curveId] = address(curve);
 

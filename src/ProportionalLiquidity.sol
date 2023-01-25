@@ -10,6 +10,7 @@ import "./lib/UnsafeMath64x64.sol";
 import "./lib/ABDKMath64x64.sol";
 
 import "./CurveMath.sol";
+import "./Structs.sol";
 
 library ProportionalLiquidity {
     using ABDKMath64x64 for uint256;
@@ -23,11 +24,19 @@ library ProportionalLiquidity {
 
     function proportionalDeposit(
         Storage.Curve storage curve,
-        uint256 _deposit,
-        uint256 _minQuoteAmount,
-        uint256 _minBaseAmount
-    ) external returns (uint256 curves_, uint256[] memory) {
-        int128 __deposit = _deposit.divu(1e18);
+        DepositData memory depositData
+    )
+        external
+        returns (
+            // uint256 _deposit,
+            // uint256 _minQuoteAmount,
+            // uint256 _minBaseAmount
+            uint256 curves_,
+            uint256[] memory
+        )
+    {
+        // int128 __deposit = _deposit.divu(1e18);
+        int128 __deposit = depositData.deposits.divu(1e18);
 
         uint256 _length = curve.assets.length;
 
@@ -60,13 +69,22 @@ library ProportionalLiquidity {
             uint256 _quoteWeight = curve.weights[1].mulu(1e18);
 
             for (uint256 i = 0; i < _length; i++) {
+                IntakeNumLpRatioInfo memory info;
+                info.baseWeight = _baseWeight;
+                info.minBase = depositData.minBase;
+                info.quoteWeight = _quoteWeight;
+                info.minQuote = depositData.minQuote;
+                info.amount = _oBals[i].mul(_multiplier).add(ONE_WEI);
                 deposits_[i] = Assimilators.intakeNumeraireLPRatio(
                     curve.assets[i].addr,
-                    _baseWeight,
-                    _minBaseAmount,
-                    _quoteWeight,
-                    _minQuoteAmount,
-                    _oBals[i].mul(_multiplier).add(ONE_WEI)
+                    info
+                    // _baseWeight,
+                    // // _minBaseAmount,
+                    // depositData.minBase,
+                    // _quoteWeight,
+                    // // _minQuoteAmount,
+                    // depositData.minQuote,
+                    // _oBals[i].mul(_multiplier).add(ONE_WEI)
                 );
             }
         }

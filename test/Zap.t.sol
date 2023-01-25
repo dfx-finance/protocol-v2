@@ -40,7 +40,7 @@ contract ZapTest is Test {
     Curve[] public curves;
     uint256[] public decimals;
 
-    uint256[] public dividends = [20,2];
+    uint256[] public dividends = [20, 2];
 
     CurveFactoryV2 curveFactory;
     AssimilatorFactory assimFactory;
@@ -49,10 +49,9 @@ contract ZapTest is Test {
     Zap public zap;
 
     function setUp() public {
-
         utils = new Utils();
         // create temp accounts
-        for(uint256 i = 0; i < 3; ++i){
+        for (uint256 i = 0; i < 3; ++i) {
             accounts.push(new MockUser());
         }
         // deploy zap contract
@@ -68,7 +67,10 @@ contract ZapTest is Test {
         oracleFactory = new MockOracleFactory();
         oracles.push(
             oracleFactory.newOracle(
-            address(tokens[0]), "goldOracle",9, 20000000000
+                address(tokens[0]),
+                "goldOracle",
+                9,
+                20000000000
             )
         );
         oracles.push(IOracle(Mainnet.CHAINLINK_EUR_USD));
@@ -78,15 +80,17 @@ contract ZapTest is Test {
         // deploy new assimilator factory & curveFactory v2
         assimFactory = new AssimilatorFactory();
         curveFactory = new CurveFactoryV2(
-            50000, address(accounts[2]), address(assimFactory)
+            50000,
+            address(accounts[2]),
+            address(assimFactory)
         );
         assimFactory.setCurveFactory(address(curveFactory));
         // now deploy curves
         cheats.startPrank(address(accounts[2]));
-        for(uint256 i = 0; i < 3;++i){
+        for (uint256 i = 0; i < 3; ++i) {
             CurveInfo memory curveInfo = CurveInfo(
-                string(abi.encode("dfx-curve-",i)),
-                string(abi.encode("lp-",i)),
+                string(abi.encode("dfx-curve-", i)),
+                string(abi.encode("lp-", i)),
                 address(tokens[i]),
                 address(tokens[3]),
                 DefaultCurve.BASE_WEIGHT,
@@ -107,72 +111,109 @@ contract ZapTest is Test {
         cheats.stopPrank();
         // now mint gold & silver tokens
         uint256 mintAmt = 300_000_000_000;
-        for(uint256 i = 0; i < 4; ++i){
+        for (uint256 i = 0; i < 4; ++i) {
             decimals.push(utils.tenToPowerOf(tokens[i].decimals()));
-            if(i == 0) {
+            if (i == 0) {
                 tokens[0].mint(address(accounts[0]), mintAmt.mul(decimals[i]));
-            }
-            else{
-                deal(address(tokens[i]), address(accounts[0]), mintAmt.mul(decimals[i]));
+            } else {
+                deal(
+                    address(tokens[i]),
+                    address(accounts[0]),
+                    mintAmt.mul(decimals[i])
+                );
             }
         }
         // now approve
         cheats.startPrank(address(accounts[0]));
-        for(uint256 i = 0; i < 3; ++i){
-            tokens[i].approve(address(curves[i]), type(uint).max);
-            tokens[3].approve(address(curves[i]), type(uint).max);
+        for (uint256 i = 0; i < 3; ++i) {
+            tokens[i].approve(address(curves[i]), type(uint256).max);
+            tokens[3].approve(address(curves[i]), type(uint256).max);
         }
         // approve for zap
-        for(uint256 i = 0; i < 4; ++i) {
+        for (uint256 i = 0; i < 4; ++i) {
             tokens[i].approve(address(zap), type(uint256).max);
         }
         cheats.stopPrank();
     }
+
     // // test swap of forex stable coin(euroc, cadc) usdc
     function testZap(uint256 amt) public {
         cheats.assume(amt > 100);
         cheats.assume(amt < 10000000);
-        for(uint256 i = 0; i < 2; ++i){
+        for (uint256 i = 0; i < 2; ++i) {
             // mint token to zapper
-            deal(address(tokens[i+1]), address(accounts[1]), amt * decimals[i+1]);
+            deal(
+                address(tokens[i + 1]),
+                address(accounts[1]),
+                amt * decimals[i + 1]
+            );
 
             cheats.startPrank(address(accounts[1]));
-            tokens[i+1].approve(address(curves[i+1]), type(uint).max);
-            tokens[3].approve(address(curves[i+1]), type(uint).max);
-            tokens[i+1].approve(address(zap), type(uint).max);
-            tokens[3].approve(address(zap), type(uint).max);
+            tokens[i + 1].approve(address(curves[i + 1]), type(uint256).max);
+            tokens[3].approve(address(curves[i + 1]), type(uint256).max);
+            tokens[i + 1].approve(address(zap), type(uint256).max);
+            tokens[3].approve(address(zap), type(uint256).max);
             cheats.stopPrank();
 
             // first deposit
             cheats.startPrank(address(accounts[0]));
-            curves[i+1].deposit(1000000000 * 1e18, block.timestamp + 60);
+            curves[i + 1].deposit(
+                1000000000 * 1e18,
+                0,
+                0,
+                block.timestamp + 60
+            );
             cheats.stopPrank();
 
             cheats.startPrank(address(accounts[1]));
-            uint256 originalBaseBal = tokens[i+1].balanceOf(address(accounts[1]));
+            uint256 originalBaseBal = tokens[i + 1].balanceOf(
+                address(accounts[1])
+            );
             zap.zapFromBase(
-                address(curves[i+1]),
+                address(curves[i + 1]),
                 originalBaseBal,
                 block.timestamp + 60,
                 0
             );
             // now try unzap
-            IERC20(address(curves[i+1])).approve(address(zap), type(uint256).max);
-            zap.upzapFromQuote(address(curves[i+1]), curves[i+1].balanceOf(address(accounts[1])), block.timestamp+60);
-            uint256 currentBaseBal = tokens[i+1].balanceOf(address(accounts[1]));
+            IERC20(address(curves[i + 1])).approve(
+                address(zap),
+                type(uint256).max
+            );
+            zap.upzapFromQuote(
+                address(curves[i + 1]),
+                curves[i + 1].balanceOf(address(accounts[1])),
+                block.timestamp + 60
+            );
+            uint256 currentBaseBal = tokens[i + 1].balanceOf(
+                address(accounts[1])
+            );
             uint256 currentQuoteBal = tokens[3].balanceOf(address(accounts[1]));
-            int256 baseUSDPrice = oracles[i+1].latestAnswer();
+            int256 baseUSDPrice = oracles[i + 1].latestAnswer();
             int256 quoteUSDPrice = oracles[3].latestAnswer();
-            originalBaseBal = originalBaseBal.div(decimals[i+1]);
-            currentBaseBal = currentBaseBal.div(decimals[i+1]);
+            originalBaseBal = originalBaseBal.div(decimals[i + 1]);
+            currentBaseBal = currentBaseBal.div(decimals[i + 1]);
             currentQuoteBal = currentQuoteBal.div(decimals[3]);
-            
-            uint256 originalBaseInUSD = originalBaseBal.mul(uint256(baseUSDPrice));
-            uint256 currentBaseInUSD = currentBaseBal.mul(uint256(baseUSDPrice));
-            uint256 currentQuoteInUSD = currentQuoteBal.mul(uint256(quoteUSDPrice));
+
+            uint256 originalBaseInUSD = originalBaseBal.mul(
+                uint256(baseUSDPrice)
+            );
+            uint256 currentBaseInUSD = currentBaseBal.mul(
+                uint256(baseUSDPrice)
+            );
+            uint256 currentQuoteInUSD = currentQuoteBal.mul(
+                uint256(quoteUSDPrice)
+            );
             uint256 currentTotalInUSD = currentBaseInUSD.add(currentQuoteInUSD);
-            assertApproxEqAbs(originalBaseInUSD, currentTotalInUSD, originalBaseInUSD.div(20));
-            tokens[3].transfer(address(accounts[2]), tokens[3].balanceOf(address(accounts[1])));
+            assertApproxEqAbs(
+                originalBaseInUSD,
+                currentTotalInUSD,
+                originalBaseInUSD.div(20)
+            );
+            tokens[3].transfer(
+                address(accounts[2]),
+                tokens[3].balanceOf(address(accounts[1]))
+            );
             cheats.stopPrank();
         }
     }
