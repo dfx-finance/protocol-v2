@@ -59,9 +59,7 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
             cadcOracle,
-            cadc.decimals(),
             usdcOracle,
-            usdc.decimals(),
             DefaultCurve.ALPHA,
             DefaultCurve.BETA,
             DefaultCurve.MAX,
@@ -80,9 +78,7 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
             eurocOracle,
-            euroc.decimals(),
             usdcOracle,
-            usdc.decimals(),
             DefaultCurve.ALPHA,
             DefaultCurve.BETA,
             DefaultCurve.MAX,
@@ -104,9 +100,7 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
             cadcOracle,
-            cadc.decimals(),
             usdcOracle,
-            usdc.decimals(),
             DefaultCurve.ALPHA,
             DefaultCurve.BETA,
             DefaultCurve.MAX,
@@ -281,6 +275,75 @@ contract CurveFactoryV2Test is Test {
         usdc.approve(address(dfxEurocCurve), type(uint).max);
 
         dfxEurocCurve.deposit(100_000e18 + _extraAmt, block.timestamp + 60);
+        cheats.stopPrank();
+    }
+
+    function testFail_invalidNewCurveBase() public {
+        cheats.startPrank(address(treasury));
+        CurveInfo memory invalidCurveInfo = CurveInfo(
+            string.concat("dfx-", cadc.name()),
+            string.concat("dfx-", cadc.symbol()),
+            // USDC as base
+            address(usdc),
+            address(usdc),
+            DefaultCurve.BASE_WEIGHT,
+            DefaultCurve.QUOTE_WEIGHT,
+            cadcOracle,
+            usdcOracle,
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
+        );
+        
+        dfxEurocCurve = curveFactory.newCurve(invalidCurveInfo);
+        cheats.stopPrank();
+    }
+
+    function testFail_invalidNewCurveQuote() public {
+        cheats.startPrank(address(treasury));
+        CurveInfo memory invalidCurveInfo = CurveInfo(
+            string.concat("dfx-", cadc.name()),
+            string.concat("dfx-", cadc.symbol()),
+            // Non USDC as quote
+            address(usdc),
+            address(cadc),
+            DefaultCurve.BASE_WEIGHT,
+            DefaultCurve.QUOTE_WEIGHT,
+            cadcOracle,
+            usdcOracle,
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
+        );
+        
+        dfxEurocCurve = curveFactory.newCurve(invalidCurveInfo);
+        cheats.stopPrank();
+    }
+
+    function testFail_invalidNewCurveWeights() public {
+        cheats.startPrank(address(treasury));
+        CurveInfo memory invalidCurveInfo = CurveInfo(
+            string.concat("dfx-", cadc.name()),
+            string.concat("dfx-", cadc.symbol()),
+            address(cadc),
+            address(usdc),
+            // Smaller weight
+            5e16,
+            5e16,
+            cadcOracle,
+            usdcOracle,
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
+        );
+        
+        dfxEurocCurve = curveFactory.newCurve(invalidCurveInfo);
         cheats.stopPrank();
     }
 }

@@ -27,6 +27,7 @@ import "./AssimilatorFactory.sol";
 import "./assimilators/AssimilatorV2.sol";
 import "./interfaces/ICurveFactory.sol";
 import "./interfaces/IAssimilatorFactory.sol";
+import "./interfaces/IERC20Detailed.sol";
 import "./Structs.sol";
 
 contract CurveFactoryV2 is ICurveFactory, Ownable {
@@ -172,17 +173,25 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
     }
 
     function newCurve(CurveInfo memory _info) public returns (Curve) {
+        require(_info._quoteCurrency == 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "CurveFactory/quote-currency-is-not-usdc");
+        require(_info._baseCurrency != 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "CurveFactory/base-currency-is-usdc");
+        
+        require(_info._baseWeight == 5e17 && _info._quoteWeight == 5e17, "CurveFactory/weights-not-50-percent");
+        
+        uint256 quoteDec = IERC20Detailed(_info._quoteCurrency).decimals();
+        uint256 baseDec = IERC20Detailed(_info._baseCurrency).decimals();
+        
         bytes32 curveId = keccak256(abi.encode(_info._baseCurrency, _info._quoteCurrency));
         if (curves[curveId] != address(0)) revert("CurveFactory/pair-exists");
         AssimilatorV2 _baseAssim;
         _baseAssim = (assimilatorFactory.getAssimilator(_info._baseCurrency));
         if (address(_baseAssim) == address(0))
-            _baseAssim = (assimilatorFactory.newAssimilator(_info._baseOracle, _info._baseCurrency, _info._baseDec));
+            _baseAssim = (assimilatorFactory.newAssimilator(_info._baseOracle, _info._baseCurrency, baseDec));
         AssimilatorV2 _quoteAssim;
         _quoteAssim = (assimilatorFactory.getAssimilator(_info._quoteCurrency));
         if (address(_quoteAssim) == address(0))
             _quoteAssim = (
-                assimilatorFactory.newAssimilator(_info._quoteOracle, _info._quoteCurrency, _info._quoteDec)
+                assimilatorFactory.newAssimilator(_info._quoteOracle, _info._quoteCurrency, quoteDec)
             );
 
         address[] memory _assets = new address[](10);
