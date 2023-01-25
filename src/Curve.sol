@@ -468,14 +468,18 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         address _numeraire,
         address _numeraireAssim,
         address _reserve,
-        address _reserveAssim
+        address _reserveAssim,
+        address _cadcAssim,
+        address _usdcAssim
     ) external onlyOwner {
         Orchestrator.setAssimilator(
             curve,
             _numeraire,
             _numeraireAssim,
             _reserve,
-            _reserveAssim
+            _reserveAssim,
+            _cadcAssim,
+            _usdcAssim
         );
     }
 

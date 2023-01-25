@@ -84,7 +84,9 @@ library Orchestrator {
         address _numeraire,
         address _numeraireAssim,
         address _reserve,
-        address _reserveAssim
+        address _reserveAssim,
+        address _cadcAssim,
+        address _usdcAssim
     ) external {
         require(_numeraire != address(0), "Curve/numeraire-cannot-be-zeroth-address");
 
@@ -105,6 +107,22 @@ library Orchestrator {
         _reserveAssimilator.addr = _reserveAssim;
 
         _reserveAssimilator.ix = uint8(curve.assets.length);
+
+        Storage.Assimilator storage cadcAssim = curve.assimilators[_cadcAssim];
+        curve.assets[0] = cadcAssim;
+
+        Storage.Assimilator storage usdcAssim = curve.assimilators[_usdcAssim];
+        curve.assets[1] = usdcAssim;
+
+        // includeAsset(
+        //     curve,
+        //     _numeraire, // numeraire
+        //     _numeraireAssim, // numeraire assimilator
+        //     _reserve, // reserve
+        //     _reserveAssim, // reserve assimilator
+        //     _reserve, // reserve approve to
+        //     5e17
+        // );
     }
 
     function getFee(Storage.Curve storage curve) private view returns (int128 fee_) {
