@@ -135,8 +135,8 @@ contract CurveFactoryV2Test is Test {
             address(cadcFactoryAssimNew), 
             address(cadc), 
             address(cadcFactoryAssimNew),
-            address(cadcFactoryAssimNew),
-            address(usdcFactoryAssimNew)
+            address(cadc),
+            address(usdc)
         );
 
         dfxCadcCurve.setAssimilator(
@@ -144,8 +144,8 @@ contract CurveFactoryV2Test is Test {
             address(usdcFactoryAssimNew), 
             address(usdc), 
             address(usdcFactoryAssimNew),
-            address(cadcFactoryAssimNew),
-            address(usdcFactoryAssimNew)
+            address(cadc),
+            address(usdc)
         );
 
         IAssimilator cadcCurveAssimNew = IAssimilator(dfxCadcCurve.assimilator(address(cadc)));
