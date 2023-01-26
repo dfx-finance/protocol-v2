@@ -465,21 +465,17 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     }
 
     function setAssimilator(
-        address _numeraire,
-        address _numeraireAssim,
-        address _reserve,
-        address _reserveAssim,
-        address _cadcAssim,
-        address _usdcAssim
+        address _baseCurrency,
+        address _baseAssim,
+        address _quoteCurrency,
+        address _quoteAssim
     ) external onlyOwner {
         Orchestrator.setAssimilator(
             curve,
-            _numeraire,
-            _numeraireAssim,
-            _reserve,
-            _reserveAssim,
-            _cadcAssim,
-            _usdcAssim
+            _baseCurrency,
+            _baseAssim,
+            _quoteCurrency,
+            _quoteAssim
         );
     }
 

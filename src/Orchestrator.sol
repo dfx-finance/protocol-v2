@@ -81,38 +81,26 @@ library Orchestrator {
 
     function setAssimilator(
         Storage.Curve storage curve,
-        address _numeraire,
-        address _numeraireAssim,
-        address _reserve,
-        address _reserveAssim,
-        address _cadcAssim,
-        address _usdcAssim
+        address _baseCurrency,
+        address _baseAssim,
+        address _quoteCurrency,
+        address _quoteAssim
     ) external {
-        require(_numeraire != address(0), "Curve/numeraire-cannot-be-zeroth-address");
+        require(_baseCurrency != address(0), "Curve/numeraire-cannot-be-zeroth-address");
+        require(_baseAssim != address(0), "Curve/numeraire-assimilator-cannot-be-zeroth-address");
+        require(_quoteCurrency != address(0), "Curve/reserve-cannot-be-zeroth-address");
+        require(_quoteAssim != address(0), "Curve/reserve-assimilator-cannot-be-zeroth-address");
 
-        require(_numeraireAssim != address(0), "Curve/numeraire-assimilator-cannot-be-zeroth-address");
+        Storage.Assimilator storage _baseAssimilator = curve.assimilators[_baseCurrency];
+        _baseAssimilator.addr = _baseAssim;
+        _baseAssimilator.ix = uint8(curve.assets.length);
 
-        require(_reserve != address(0), "Curve/reserve-cannot-be-zeroth-address");
+        Storage.Assimilator storage _quoteAssimilator = curve.assimilators[_quoteCurrency];
+        _quoteAssimilator.addr = _quoteAssim;
+        _quoteAssimilator.ix = uint8(curve.assets.length);
 
-        require(_reserveAssim != address(0), "Curve/reserve-assimilator-cannot-be-zeroth-address");
-
-        Storage.Assimilator storage _numeraireAssimilator = curve.assimilators[_numeraire];
-
-        _numeraireAssimilator.addr = _numeraireAssim;
-
-        _numeraireAssimilator.ix = uint8(curve.assets.length);
-
-        Storage.Assimilator storage _reserveAssimilator = curve.assimilators[_reserve];
-
-        _reserveAssimilator.addr = _reserveAssim;
-
-        _reserveAssimilator.ix = uint8(curve.assets.length);
-
-        Storage.Assimilator storage cadcAssim = curve.assimilators[_cadcAssim];
-        curve.assets[0] = cadcAssim;
-
-        Storage.Assimilator storage usdcAssim = curve.assimilators[_usdcAssim];
-        curve.assets[1] = usdcAssim;
+        curve.assets[0] = _baseAssimilator;
+        curve.assets[1] = _quoteAssimilator;
 
         // includeAsset(
         //     curve,
