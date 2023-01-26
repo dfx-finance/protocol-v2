@@ -47,3 +47,17 @@ struct CurveInfo {
     uint256 _epsilon;
     uint256 _lambda;
 }
+
+struct DepositData {
+    uint256 deposits;
+    uint256 minQuote;
+    uint256 minBase;
+}
+
+struct IntakeNumLpRatioInfo {
+    uint256 baseWeight;
+    uint256 minBase;
+    uint256 quoteWeight;
+    uint256 minQuote;
+    int128 amount;
+}

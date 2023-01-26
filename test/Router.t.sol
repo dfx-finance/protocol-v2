@@ -124,7 +124,7 @@ contract RouterTest is Test {
 
         cheats.startPrank(address(users[0]));
         for (uint8 i = 0; i < fxTokenCount; i++) {           
-            dfxCurves[i].deposit(100_000_000e18, block.timestamp + 60);
+            dfxCurves[i].deposit(100_000_000e18,0,0, block.timestamp + 60);
         }
         cheats.stopPrank();
     }

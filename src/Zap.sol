@@ -175,7 +175,7 @@ contract Zap {
         USDC.safeApprove(_curve, 0);
         USDC.safeApprove(_curve, quoteAmount);
 
-        (uint256 lpAmount, ) = Curve(_curve).deposit(depositAmount, _deadline);
+        (uint256 lpAmount, ) = Curve(_curve).deposit(depositAmount,0,0, _deadline);
         require(lpAmount >= _minLPAmount, "!Zap/not-enough-lp-amount");
 
         // Transfer all remaining balances back to user

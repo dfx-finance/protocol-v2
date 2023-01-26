@@ -142,7 +142,7 @@ contract V2Test is Test {
 
         // first deposit
         cheats.startPrank(address(accounts[0]));
-        curves[0].deposit(2000000000 * decimals[0], block.timestamp + 60);
+        curves[0].deposit(2000000000 * decimals[0],0,0, block.timestamp + 60);
         cheats.stopPrank();
 
         cheats.startPrank(address(accounts[1]));
@@ -180,7 +180,7 @@ contract V2Test is Test {
 
             // first deposit
             cheats.startPrank(address(accounts[0]));
-            curves[i+1].deposit(1000000000 * 1e18, block.timestamp + 60);
+            curves[i+1].deposit(1000000000 * 1e18,0,0, block.timestamp + 60);
             cheats.stopPrank();
 
             cheats.startPrank(address(accounts[1]));
@@ -234,7 +234,7 @@ contract V2Test is Test {
         for(uint256 i = 0; i < 3; ++i){
             // first deposit from the depositor
             cheats.startPrank(address(accounts[0]));
-            curves[i].deposit(10000000 * decimals[i], block.timestamp + 60);
+            curves[i].deposit(10000000 * decimals[i],0,0, block.timestamp + 60);
             cheats.stopPrank();
             uint256 poolForexBal = tokens[i].balanceOf(address(curves[i]));
             // mint gold to trader
@@ -276,7 +276,7 @@ contract V2Test is Test {
         cheats.assume(percentage < 100);
         for(uint256 i = 0; i < 3; ++i){
             cheats.startPrank(address(accounts[0]));
-            curves[i].deposit(10000000 * decimals[i], block.timestamp + 60);
+            curves[i].deposit(10000000 * decimals[i],0,0, block.timestamp + 60);
             cheats.stopPrank();
             uint256 poolForexBal = tokens[i].balanceOf(address(curves[i]));
             uint256 poolUSDCBal = tokens[3].balanceOf(address(curves[i]));
@@ -290,7 +290,7 @@ contract V2Test is Test {
             cheats.startPrank(address(accounts[0]));
             tokens[i].approve(address(curves[i]), type(uint).max);
             tokens[3].approve(address(curves[i]), type(uint).max);
-            curves[i].deposit(poolForexBal.div(percentage).mul(100), block.timestamp + 60);
+            curves[i].deposit(poolForexBal.div(percentage).mul(100),0,0, block.timestamp + 60);
             cheats.stopPrank();
         }
     }

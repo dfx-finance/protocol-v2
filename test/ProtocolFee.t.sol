@@ -116,7 +116,7 @@ contract ProtocolFeeTest is Test {
         for(uint256 i = 0; i < 3; ++i){
             tokens[i].approve(address(curves[i]), type(uint).max);
             tokens[3].approve(address(curves[i]), type(uint).max);
-            curves[i].deposit(100_000_000_000 * 1e18, block.timestamp + 60);
+            curves[i].deposit(100_000_000_000 * 1e18,0,0, block.timestamp + 60);
         }
         cheats.stopPrank();
     }

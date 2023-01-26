@@ -142,7 +142,7 @@ contract CurveFactoryV2Test is Test {
         ICurveFactory(address(curveFactory)).setGlobalFrozen(true);
         
         cheats.prank(address(liquidityProvider));
-        dfxCadcCurve.deposit(100_000, block.timestamp + 60);
+        dfxCadcCurve.deposit(100_000,0,0, block.timestamp + 60);
     }
 
     function test_GlobalFrozeWithdraw() public {
@@ -153,7 +153,7 @@ contract CurveFactoryV2Test is Test {
         cadc.approve(address(dfxCadcCurve), type(uint).max);
         usdc.approve(address(dfxCadcCurve), type(uint).max);
 
-        dfxCadcCurve.deposit(100_000e18, block.timestamp + 60);
+        dfxCadcCurve.deposit(100_000e18,0,0, block.timestamp + 60);
         (uint256 one, uint256[] memory derivatives) = dfxCadcCurve.viewDeposit(100_000e18);
         cheats.stopPrank();
 
@@ -182,7 +182,7 @@ contract CurveFactoryV2Test is Test {
         cadc.approve(address(dfxCadcCurve), type(uint).max);
         usdc.approve(address(dfxCadcCurve), type(uint).max);
 
-        dfxCadcCurve.deposit(_gGuardAmt, block.timestamp + 60);
+        dfxCadcCurve.deposit(_gGuardAmt,0,0, block.timestamp + 60);
         cheats.stopPrank();
     }
 
@@ -201,7 +201,7 @@ contract CurveFactoryV2Test is Test {
         cadc.approve(address(dfxCadcCurve), type(uint).max);
         usdc.approve(address(dfxCadcCurve), type(uint).max);
 
-        dfxCadcCurve.deposit(100_000e18 + _extraAmt, block.timestamp + 60);
+        dfxCadcCurve.deposit(100_000e18 + _extraAmt,0,0, block.timestamp + 60);
         cheats.stopPrank();
     }
 
@@ -223,7 +223,7 @@ contract CurveFactoryV2Test is Test {
         euroc.approve(address(dfxEurocCurve), type(uint).max);
         usdc.approve(address(dfxEurocCurve), type(uint).max);
         // deposit less than 80k
-        dfxEurocCurve.deposit(80_000e18 - _extraAmt, block.timestamp + 60);
+        dfxEurocCurve.deposit(80_000e18 - _extraAmt,0,0, block.timestamp + 60);
         cheats.stopPrank();
     }
 
@@ -245,7 +245,7 @@ contract CurveFactoryV2Test is Test {
         euroc.approve(address(dfxEurocCurve), type(uint).max);
         usdc.approve(address(dfxEurocCurve), type(uint).max);
         // deposit more than 80k
-        dfxEurocCurve.deposit(80_000e18 + _extraAmt, block.timestamp + 60);
+        dfxEurocCurve.deposit(80_000e18 + _extraAmt,0,0, block.timestamp + 60);
         cheats.stopPrank();
     }
 
@@ -261,7 +261,7 @@ contract CurveFactoryV2Test is Test {
         euroc.approve(address(dfxEurocCurve), type(uint).max);
         usdc.approve(address(dfxEurocCurve), type(uint).max);
 
-        dfxEurocCurve.deposit(100_000e18, block.timestamp + 60);
+        dfxEurocCurve.deposit(100_000e18,0,0, block.timestamp + 60);
         cheats.stopPrank();
     }
 
@@ -278,7 +278,7 @@ contract CurveFactoryV2Test is Test {
         euroc.approve(address(dfxEurocCurve), type(uint).max);
         usdc.approve(address(dfxEurocCurve), type(uint).max);
 
-        dfxEurocCurve.deposit(100_000e18 + _extraAmt, block.timestamp + 60);
+        dfxEurocCurve.deposit(100_000e18 + _extraAmt,0,0, block.timestamp + 60);
         cheats.stopPrank();
     }
 }
