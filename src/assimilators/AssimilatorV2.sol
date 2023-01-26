@@ -96,15 +96,10 @@ contract AssimilatorV2 is IAssimilator {
         uint256 _tokenBal = token.balanceOf(_addr);
 
         if (_tokenBal <= 0) return 0;
-
-        _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
-
-        uint256 _usdcBal = usdc.balanceOf(_addr).mul(1e18).div(_quoteWeight);
-
-        // Rate is in 1e6
-        uint256 _rate = _usdcBal.mul(10**tokenDecimals).div(_tokenBal);
-
-        amount_ = (_amount.mulu(10**tokenDecimals) * 1e6) / _rate;
+        
+        amount_ =
+            (_amount.mulu((1e6)) * _quoteWeight * token.balanceOf(_addr)) /
+            (usdc.balanceOf(_addr) * _baseWeight);
 
         token.safeTransferFrom(msg.sender, address(this), amount_);
     }
@@ -165,16 +160,9 @@ contract AssimilatorV2 is IAssimilator {
 
         if (_tokenBal <= 0) return 0;
 
-        // 1e2
-        _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
-
-        // 1e6
-        uint256 _usdcBal = usdc.balanceOf(_addr).mul(1e18).div(_quoteWeight);
-
-        // Rate is in 1e6
-        uint256 _rate = _usdcBal.mul(10**tokenDecimals).div(_tokenBal);
-
-        amount_ = (_amount.mulu(10**tokenDecimals) * 1e6) / _rate;
+        amount_ =
+            (_amount.mulu((1e6)) * _quoteWeight * token.balanceOf(_addr)) /
+            (usdc.balanceOf(_addr) * _baseWeight);
     }
 
     // takes a raw amount and returns the numeraire amount
@@ -223,12 +211,9 @@ contract AssimilatorV2 is IAssimilator {
 
         if (_tokenBal <= 0) return ABDKMath64x64.fromUInt(0);
 
-        uint256 _usdcBal = usdc.balanceOf(_addr).mul(1e18).div(_quoteWeight);
-
-        // Rate is in 1e6
-        uint256 _rate = _usdcBal.mul(1e18).div(_tokenBal.mul(1e18).div(_baseWeight));
-
-        balance_ = ((_tokenBal * _rate) / 1e6).divu(1e18);
+        uint256 balance = (_tokenBal * usdc.balanceOf(_addr) * _baseWeight) /
+            (_quoteWeight * 1e6);
+        balance_ = balance.fromUInt();
     }
 
     function transferFee(int128 _amount, address _treasury) external override returns (bool transferSuccess_) {
