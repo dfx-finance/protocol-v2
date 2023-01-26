@@ -15,8 +15,6 @@
 
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
-
 import "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "../../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
@@ -25,7 +23,7 @@ import "../lib/ABDKMath64x64.sol";
 import "../interfaces/IAssimilator.sol";
 import "../interfaces/IOracle.sol";
 
-contract AssimilatorV2 is IAssimilator, Test {
+contract AssimilatorV2 is IAssimilator {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
 
@@ -59,8 +57,6 @@ contract AssimilatorV2 is IAssimilator, Test {
 
     // takes raw eurs amount, transfers it in, calculates corresponding numeraire amount and returns it
     function intakeRawAndGetBalance(uint256 _amount) external override returns (int128 amount_, int128 balance_) {
-        emit log_named_uint("Origin Amount", _amount);
-
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256 _balance = token.balanceOf(address(this));
@@ -84,10 +80,7 @@ contract AssimilatorV2 is IAssimilator, Test {
     // takes a numeraire amount, calculates the raw amount of eurs, transfers it in and returns the corresponding raw amount
     function intakeNumeraire(int128 _amount) external override returns (uint256 amount_) {
         uint256 _rate = getRate();
-        // int128 _amount = 250_000e18;
-        emit log_named_int("Amount leaving", _amount);
         amount_ = (_amount.mulu(10**tokenDecimals) * 10**oracleDecimals) / _rate;
-        emit log_named_uint("Amount leaving users wallet", amount_);
         token.safeTransferFrom(msg.sender, address(this), amount_);
     }
 
@@ -116,18 +109,12 @@ contract AssimilatorV2 is IAssimilator, Test {
 
     // takes a raw amount of eurs and transfers it out, returns numeraire value of the raw amount
     function outputRawAndGetBalance(address _dst, uint256 _amount) external override returns (int128 amount_, int128 balance_){
-        emit log_named_uint("Target Amount", _amount);
-
         uint256 _rate = getRate();
             
-        // uint256 _amount = 250_000e18;
-        // uint256 _tokenAmount = ((_amount) * _rate) / 10**oracleDecimals;
-
         token.safeTransfer(_dst, _amount);
 
         uint256 _balance = token.balanceOf(address(this));
 
-        // amount_ = _tokenAmount.divu(10**tokenDecimals); // ABDKMATH64x64 form NOT numeraire
         amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
 
         balance_ = ((_balance * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
