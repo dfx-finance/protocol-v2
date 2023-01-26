@@ -44,9 +44,6 @@ contract V2Test is Test {
 
     CurveFactoryV2 curveFactory;
     AssimilatorFactory assimFactory;
-    // ZAP STUFF HERE
-    Zap public zap;
-    MockUser public victim;
 
     function setUp() public {
 
@@ -62,8 +59,6 @@ contract V2Test is Test {
         tokens.push(IERC20Detailed(Mainnet.CADC));
         tokens.push(IERC20Detailed(Mainnet.USDC));
 
-        zap = new Zap();
-        victim = new MockUser();
         // deploy mock oracle factory for deployed token (named gold)
         oracleFactory = new MockOracleFactory();
         oracles.push(
@@ -123,20 +118,6 @@ contract V2Test is Test {
             tokens[i].approve(address(curves[i]), type(uint).max);
             tokens[3].approve(address(curves[i]), type(uint).max);
         }
-        cheats.stopPrank();
-
-        cheats.startPrank(address(victim));
-        // Token Approvals
-        IERC20Detailed(Mainnet.EUROC).approve(address(zap), type(uint).max);
-        IERC20Detailed(Mainnet.USDC).approve(address(zap), type(uint).max);
-        deal(address(Mainnet.EUROC), address(victim), 100_000_000e6);
-        cheats.stopPrank();
-
-        cheats.startPrank(address(accounts[1]));
-        IERC20Detailed(Mainnet.EUROC).approve(address(curves[1]), type(uint).max);
-        IERC20Detailed(Mainnet.USDC).approve(address(curves[1]), type(uint).max);
-        deal(address(Mainnet.EUROC), address(accounts[1]), 200_000_000e6);
-        deal(address(Mainnet.USDC), address(accounts[1]), 200_000_000e6);
         cheats.stopPrank();
     }
     /**
