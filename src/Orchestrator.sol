@@ -102,15 +102,6 @@ library Orchestrator {
         curve.assets[0] = _baseAssimilator;
         curve.assets[1] = _quoteAssimilator;
 
-        // includeAsset(
-        //     curve,
-        //     _numeraire, // numeraire
-        //     _numeraireAssim, // numeraire assimilator
-        //     _reserve, // reserve
-        //     _reserveAssim, // reserve assimilator
-        //     _reserve, // reserve approve to
-        //     5e17
-        // );
     }
 
     function getFee(Storage.Curve storage curve) private view returns (int128 fee_) {
