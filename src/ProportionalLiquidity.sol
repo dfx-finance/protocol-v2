@@ -234,8 +234,8 @@ library ProportionalLiquidity {
         address account,
         uint256 amount
     ) private {
-        require(amount > 1000, "Proportional Liquidity/amount too small!");
         if (curve.totalSupply == 0) {
+            require(amount > 1000, "Proportional Liquidity/amount too small!");
             uint256 toMintAmt = amount - 1000;
             // mint to lp provider
             curve.totalSupply = mintAdd(curve.totalSupply, toMintAmt);
