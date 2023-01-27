@@ -98,9 +98,16 @@ contract AssimilatorV2 is IAssimilator {
         uint256 _tokenBal = token.balanceOf(_addr);
 
         if (_tokenBal <= 0) return 0;
-        amount_ =
-            (_amount.mulu((1e6)) * _quoteWeight * token.balanceOf(_addr)) /
-            (usdc.balanceOf(_addr) * _baseWeight);
+
+        _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
+
+        uint256 _usdcBal = usdc.balanceOf(_addr).mul(1e18).div(_quoteWeight);
+
+        // Rate is in 1e6
+        uint256 _rate = _usdcBal.mul(10**tokenDecimals).div(_tokenBal);
+
+        amount_ = (_amount.mulu(10**tokenDecimals) * 1e6) / _rate;
+        
         if (address(token) == address(usdc)) {
             require(amount_ >= _minQuoteAmount, "Assimilator/LP Ratio imbalanced!");
         } else {
