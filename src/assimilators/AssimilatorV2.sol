@@ -124,11 +124,9 @@ contract AssimilatorV2 is IAssimilator {
     function outputRaw(address _dst, uint256 _amount) external override returns (int128 amount_) {
         uint256 _rate = getRate();
 
-        uint256 _tokenAmount = (_amount * _rate) / 10**oracleDecimals;
+        token.safeTransfer(_dst, _amount);
 
-        token.safeTransfer(_dst, _tokenAmount);
-
-        amount_ = _tokenAmount.divu(10**tokenDecimals);
+        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
     }
 
     // takes a numeraire value of eurs, figures out the raw amount, transfers raw amount out, and returns raw amount

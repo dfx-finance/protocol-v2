@@ -130,7 +130,7 @@ library Swaps {
 
         _swapInfo.totalAmount = _amt;
         _swapInfo.curveFactory = ICurveFactory(_swapData._curveFactory);
-        _swapInfo.amountToUser = _amt.us_mul(ONE - curve.epsilon);
+        _swapInfo.amountToUser = _amt.us_mul(ONE + curve.epsilon);
         _swapInfo.totalFee = _swapInfo.amountToUser - _amt;
         _swapInfo.protocolFeePercentage = _swapInfo.curveFactory.getProtocolFee();
         _swapInfo.treasury = _swapInfo.curveFactory.getProtocolTreasury();
