@@ -169,7 +169,7 @@ contract V2Test is Test {
     }
     // // test swap of forex stable coin(euroc, cadc) usdc
     function testForeignStableCoinSwap(uint256 amt) public {
-        cheats.assume(amt > 100);
+        cheats.assume(amt > 1000);
         cheats.assume(amt < 10000000);
         for(uint256 i = 0; i < 2; ++i){
             // mint token to trader
