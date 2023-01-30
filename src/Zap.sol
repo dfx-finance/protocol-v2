@@ -108,8 +108,8 @@ contract Zap {
             IERC20(base).safeApprove(_curve, 0);
             IERC20(base).safeApprove(_curve, type(uint256).max);
             Curve(_curve).originSwap(base, address(USDC), baseAmount, 0, _deadline);
-            require(USDC.balanceOf(address(this)) >= _minTokenAmount, "!Unzap/not-enough-token-amount");
             uint256 usdcAmount = USDC.balanceOf(address(this));
+            require(usdcAmount >= _minTokenAmount, "!Unzap/not-enough-token-amount");
             USDC.safeTransfer(msg.sender, usdcAmount);
             return usdcAmount;
         }
