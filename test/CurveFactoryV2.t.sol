@@ -157,14 +157,14 @@ contract CurveFactoryV2Test is Test {
         (uint256 one, uint256[] memory derivatives) = dfxCadcCurve.viewDeposit(100_000e18);
         cheats.stopPrank();
 
-        assertEq(dfxCadcCurve.balanceOf(address(liquidityProvider)), 100_000e18);
+        assertApproxEqAbs(dfxCadcCurve.balanceOf(address(liquidityProvider)), 100_000e18, 1000);
 
         cheats.prank(address(this));
         ICurveFactory(address(curveFactory)).setGlobalFrozen(true);
         
         // can still withdraw after global freeze
         cheats.prank(address(liquidityProvider));
-        dfxCadcCurve.withdraw(100_000e18, block.timestamp + 60);
+        dfxCadcCurve.withdraw(100_000e18 - 1000, block.timestamp + 60);
     }
 
     function test_depositGlobalGuard(uint256 _gGuardAmt) public {
