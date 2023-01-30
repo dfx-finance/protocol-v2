@@ -425,6 +425,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         uint256[] memory _assetWeights,
         address _factory
     ) {
+        require(_factory != address(0), "curve/zero-address");
         owner = msg.sender;
         name = _name;
         symbol = _symbol;
