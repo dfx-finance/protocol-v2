@@ -48,7 +48,7 @@ contract V2Test is Test {
 
         utils = new Utils();
         // create temp accounts
-        for(uint256 i = 0; i < 3; ++i){
+        for(uint256 i = 0; i < 4; ++i){
             accounts.push(new MockUser());
         }
         // deploy gold token & init 3 stable coins
@@ -159,8 +159,13 @@ contract V2Test is Test {
 
         uint256 noDecUsdcBal = tokens[3].balanceOf(address(accounts[1]));
         noDecUsdcBal = noDecUsdcBal.div(decimals[3]);
+        // burn usdc from treasury
+        uint256 traderUsdcBal = tokens[3].balanceOf(address(accounts[1]));
+        cheats.startPrank((address(accounts[1])));
+        tokens[3].transfer(address(accounts[3]), traderUsdcBal);
+        cheats.stopPrank();
         // price ratio is 1:20, balance ration also needs to be approx 1:20
-        assertApproxEqAbs(noDecGoldBal.mul(20), noDecUsdcBal, noDecUsdcBal.div(100));
+        assertApproxEqAbs(noDecUsdcBal, noDecGoldBal * 20, noDecUsdcBal.div(100));
     }
     // // test swap of forex stable coin(euroc, cadc) usdc
     function testForeignStableCoinSwap(uint256 amt) public {
@@ -197,7 +202,17 @@ contract V2Test is Test {
 
             uint256 noDecUsdcBal = tokens[3].balanceOf(address(accounts[1]));
             noDecUsdcBal = noDecUsdcBal.div(decimals[3]);
-            assertApproxEqAbs(noDecForexBal, noDecUsdcBal, noDecUsdcBal.div(dividends[i]));
+
+            (, int256 _price, , , ) = oracles[i+1].latestRoundData();
+            uint256 price = uint256(_price);
+            uint256 oracleDecimals = oracles[i+1].decimals();
+
+            // burn usdc from treasury
+            uint256 traderUsdcBal = tokens[3].balanceOf(address(accounts[1]));
+            cheats.startPrank((address(accounts[1])));
+            tokens[3].transfer(address(accounts[3]), traderUsdcBal);
+            cheats.stopPrank();
+            assertApproxEqAbs(noDecUsdcBal, noDecForexBal * price / (10 ** oracleDecimals), noDecUsdcBal.div(100));
         }
     }
 
