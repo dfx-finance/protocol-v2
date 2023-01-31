@@ -12,6 +12,7 @@ import "../src/AssimilatorFactory.sol";
 import "../src/CurveFactoryV2.sol";
 import "../src/Curve.sol";
 import "../src/Structs.sol";
+import "../src/Config.sol";
 import "../src/lib/ABDKMath64x64.sol";
 import "../src/Zap.sol";
 
@@ -42,6 +43,7 @@ contract ZapTest is Test {
 
     uint256[] public dividends = [20,2];
 
+    Config config;
     CurveFactoryV2 curveFactory;
     AssimilatorFactory assimFactory;
 
@@ -75,10 +77,12 @@ contract ZapTest is Test {
         oracles.push(IOracle(Mainnet.CHAINLINK_CAD_USD));
         oracles.push(IOracle(Mainnet.CHAINLINK_USDC_USD));
 
+        config = new Config(50000, address(accounts[2]));
         // deploy new assimilator factory & curveFactory v2
         assimFactory = new AssimilatorFactory();
         curveFactory = new CurveFactoryV2(
-            50000, address(accounts[2]), address(assimFactory)
+            address(assimFactory),
+            address(config)
         );
         assimFactory.setCurveFactory(address(curveFactory));
         // now deploy curves
