@@ -93,11 +93,9 @@ library Orchestrator {
 
         Storage.Assimilator storage _baseAssimilator = curve.assimilators[_baseCurrency];
         _baseAssimilator.addr = _baseAssim;
-        _baseAssimilator.ix = uint8(curve.assets.length);
 
         Storage.Assimilator storage _quoteAssimilator = curve.assimilators[_quoteCurrency];
         _quoteAssimilator.addr = _quoteAssim;
-        _quoteAssimilator.ix = uint8(curve.assets.length);
 
         curve.assets[0] = _baseAssimilator;
         curve.assets[1] = _quoteAssimilator;
