@@ -307,9 +307,8 @@ contract V2Test is Test {
             cheats.startPrank(address(accounts[0]));
             tokens[i].approve(address(curves[i]), type(uint).max);
             tokens[3].approve(address(curves[i]), type(uint).max);
-            curves[i].deposit(poolForexBal.div(percentage).mul(100), block.timestamp + 60);
+            curves[i].deposit(poolForexBal.mul(100).div(percentage), block.timestamp + 60);
             cheats.stopPrank();
         }
     }
 }
-

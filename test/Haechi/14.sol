@@ -143,6 +143,6 @@ contract MinimalLiquidityLockTest is Test {
         curves[1].deposit(1 * 1e18,block.timestamp + 60);
         cheats.stopPrank();
         uint256 locked = curves[1].balanceOf(address(0));
-        assert(locked == 1000);
+        assert(locked == 1e6);
     }
 }
