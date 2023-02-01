@@ -147,7 +147,7 @@ contract MinDepositTest is Test {
         uint256 minUsdcToDeposit = 350000000000000;
         // first deposit
         cheats.startPrank(address(accounts[0]));
-        curves[1].deposit(1000000000 * 1e18, 0, 0, block.timestamp + 60);
+        curves[1].deposit(1000000000 * 1e18, 0, 0,type(uint256).max,type(uint256).max, block.timestamp + 60);
         cheats.stopPrank();
 
         // read bal
@@ -186,6 +186,39 @@ contract MinDepositTest is Test {
             1000000000 * 1e18,
             minUsdcToDeposit,
             minEurocToDeposit,
+            0,
+            0,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+    }
+
+    function testFailMaxDeposit() public {
+        uint256 amt = 10000000;
+        // mint token to trader
+        deal(address(tokens[1]), address(accounts[1]), amt * decimals[1]);
+
+        // mint 100 euro, 1 usdc to the pool
+        deal(address(tokens[1]), address(curves[1]), 100 * decimals[1]);
+        deal(address(tokens[3]), address(curves[1]), 1 * decimals[3]);
+
+        uint256 forexBalance = tokens[1].balanceOf(address(accounts[1]));
+
+        cheats.startPrank(address(accounts[1]));
+        tokens[1].approve(address(curves[1]), type(uint256).max);
+        tokens[3].approve(address(curves[1]), type(uint256).max);
+        cheats.stopPrank();
+
+        uint256 maxEurocToDeposit = 600000*decimals[1];
+        uint256 maxUsdcToDeposit = 700000 * decimals[3];
+        // deposit
+        cheats.startPrank(address(accounts[0]));
+        curves[1].deposit(
+            1000000 * 1e18,
+            0,
+            0,
+            maxUsdcToDeposit,
+            maxEurocToDeposit,
             block.timestamp + 60
         );
         cheats.stopPrank();

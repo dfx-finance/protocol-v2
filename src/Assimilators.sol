@@ -109,8 +109,10 @@ library Assimilators {
             iAsmltr.intakeNumeraireLPRatio.selector,
             info.baseWeight,
             info.minBase,
+            info.maxBase,
             info.quoteWeight,
             info.minQuote,
+            info.maxQuote,
             address(this),
             // _amount
             info.amount

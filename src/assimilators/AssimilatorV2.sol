@@ -90,8 +90,10 @@ contract AssimilatorV2 is IAssimilator {
     function intakeNumeraireLPRatio(
         uint256 _baseWeight,
         uint256 _minBaseAmount,
+        uint256 _maxBaseAmount,
         uint256 _quoteWeight,
         uint256 _minQuoteAmount,
+        uint256 _maxQuoteAmount,
         address _addr,
         int128 _amount
     ) external override returns (uint256 amount_) {
@@ -109,9 +111,9 @@ contract AssimilatorV2 is IAssimilator {
         amount_ = (_amount.mulu(10**tokenDecimals) * 1e6) / _rate;
         
         if (address(token) == address(usdc)) {
-            require(amount_ >= _minQuoteAmount, "Assimilator/LP Ratio imbalanced!");
+            require(amount_ >= _minQuoteAmount && amount_ <= _maxQuoteAmount, "Assimilator/LP Ratio imbalanced!");
         } else {
-            require(amount_ >= _minBaseAmount, "Assimilator/LP Ratio imbalanced!");
+            require(amount_ >= _minBaseAmount && amount_ <= _maxQuoteAmount, "Assimilator/LP Ratio imbalanced!");
         }
         token.safeTransferFrom(msg.sender, address(this), amount_);
     }

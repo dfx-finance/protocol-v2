@@ -29,6 +29,8 @@ interface IAssimilator {
         uint256,
         uint256,
         uint256,
+        uint256,
+        uint256,
         address,
         int128
     ) external returns (uint256);

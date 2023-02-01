@@ -56,8 +56,10 @@ library ProportionalLiquidity {
                 IntakeNumLpRatioInfo memory info;
                 info.baseWeight = _baseWeight;
                 info.minBase = depositData.minBase;
+                info.maxBase = depositData.maxBase;
                 info.quoteWeight = _quoteWeight;
                 info.minQuote = depositData.minQuote;
+                info.maxQuote = depositData.maxQuote;
                 info.amount = _oBals[i].mul(_multiplier).add(ONE_WEI);
                 deposits_[i] = Assimilators.intakeNumeraireLPRatio(
                     curve.assets[i].addr,

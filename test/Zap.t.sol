@@ -145,7 +145,7 @@ contract ZapTest is Test {
 
             // first deposit
             cheats.startPrank(address(accounts[0]));
-            curves[i+1].deposit(1000000000 * 1e18,0,0, block.timestamp + 60);
+            curves[i+1].deposit(1000000000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
             cheats.stopPrank();
 
             cheats.startPrank(address(accounts[1]));
