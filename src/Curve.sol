@@ -36,8 +36,6 @@ import "./ViewLiquidity.sol";
 
 import "./Storage.sol";
 
-import "./MerkleProver.sol";
-
 import "./interfaces/IFreeFromUpTo.sol";
 
 import "./interfaces/ICurveFactory.sol";
@@ -260,7 +258,7 @@ library Curves {
     }
 }
 
-contract Curve is Storage, MerkleProver, NoDelegateCall {
+contract Curve is Storage, NoDelegateCall {
     using SafeMath for uint256;
     using ABDKMath64x64 for int128;
     using SafeERC20 for IERC20;
@@ -308,8 +306,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
     event FrozenSet(bool isFrozen);
 
     event EmergencyAlarm(bool isEmergency);
-
-    event WhitelistingStopped();
 
     event Trade(
         address indexed trader,
@@ -369,16 +365,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         _;
     }
 
-    modifier inWhitelistingStage() {
-        require(whitelistingStage, "Curve/whitelist-stage-stopped");
-        _;
-    }
-
-    modifier notInWhitelistingStage() {
-        require(!whitelistingStage, "Curve/whitelist-stage-on-going");
-        _;
-    }
-
     modifier globallyTransactable() {
         require(
             !ICurveFactory(address(curveFactory)).getGlobalFrozenState(),
@@ -407,14 +393,9 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         if (!ICurveFactory(curveFactory).isPoolGuarded(pool)) {
             _;
         } else {
-            uint256 poolGuardAmt = ICurveFactory(curveFactory)
-                .getPoolGuardAmount(pool);
-            uint256 userLptBal = curve.totalMinted[msg.sender];
-            require(
-                userLptBal.add(deposits) <= poolGuardAmt,
-                "curve/can't deposit too much"
-            );
             _;
+            uint256 poolGuardAmt = ICurveFactory(curveFactory).getPoolGuardAmount(pool);
+            require(curve.balances[msg.sender] <= poolGuardAmt, "curve/deposit-exceeds-guard-amt");
         }
     }
 
@@ -465,6 +446,21 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         );
     }
 
+    function setAssimilator(
+        address _baseCurrency,
+        address _baseAssim,
+        address _quoteCurrency,
+        address _quoteAssim
+    ) external onlyOwner {
+        Orchestrator.setAssimilator(
+            curve,
+            _baseCurrency,
+            _baseAssim,
+            _quoteCurrency,
+            _quoteAssim
+        );
+    }
+
     /// @notice excludes an assimilator from the curve
     /// @param _derivative the address of the assimilator to exclude
     function excludeDerivative(address _derivative) external onlyOwner {
@@ -497,12 +493,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         )
     {
         return Orchestrator.viewCurve(curve);
-    }
-
-    function turnOffWhitelisting() external onlyOwner {
-        emit WhitelistingStopped();
-
-        whitelistingStage = false;
     }
 
     function setEmergency(bool _emergency) external onlyOwner {
@@ -651,59 +641,7 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
             _targetAmount
         );
     }
-
-    /// @notice deposit into the pool with no slippage from the numeraire assets the pool supports
-    /// @param  index Index corresponding to the merkleProof
-    /// @param  account Address coorresponding to the merkleProof
-    /// @param  amount Amount coorresponding to the merkleProof, should always be 1
-    /// @param  merkleProof Merkle proof
-    /// @param  _deposit the full amount you want to deposit into the pool which will be divided up evenly amongst
-    ///                  the numeraire assets of the pool
-    /// @return (the amount of curves you receive in return for your deposit,
-    ///          the amount deposited for each numeraire)
-    function depositWithWhitelist(
-        uint256 index,
-        address account,
-        uint256 amount,
-        bytes32[] calldata merkleProof,
-        uint256 _deposit,
-        uint256 _deadline
-    )
-        external
-        deadline(_deadline)
-        globallyTransactable
-        transactable
-        nonReentrant
-        noDelegateCall
-        inWhitelistingStage
-        isDepositable(address(this), _deposit)
-        returns (uint256, uint256[] memory)
-    {
-        require(amount == 1, "Curve/invalid-amount");
-        require(index <= 473, "Curve/index-out-of-range");
-        require(
-            isWhitelisted(index, account, amount, merkleProof),
-            "Curve/not-whitelisted"
-        );
-        require(msg.sender == account, "Curve/not-approved-user");
-
-        (
-            uint256 curvesMinted_,
-            uint256[] memory deposits_
-        ) = ProportionalLiquidity.proportionalDeposit(curve, _deposit);
-
-        whitelistedDeposited[msg.sender] = whitelistedDeposited[msg.sender].add(
-            curvesMinted_
-        );
-
-        // 10k max deposit
-        if (whitelistedDeposited[msg.sender] > 10000e18) {
-            revert("Curve/exceed-whitelist-maximum-deposit");
-        }
-        increaseTotalMint(msg.sender, curvesMinted_);
-        return (curvesMinted_, deposits_);
-    }
-
+ 
     /// @notice deposit into the pool with no slippage from the numeraire assets the pool supports
     /// @param  _deposit the full amount you want to deposit into the pool which will be divided up evenly amongst
     ///                  the numeraire assets of the pool
@@ -716,7 +654,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         transactable
         nonReentrant
         noDelegateCall
-        notInWhitelistingStage
         isNotEmergency
         isDepositable(address(this), _deposit)
         returns (uint256, uint256[] memory)
@@ -726,7 +663,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
             uint256 curvesMinted_,
             uint256[] memory deposits_
         ) = ProportionalLiquidity.proportionalDeposit(curve, _deposit);
-        increaseTotalMint(msg.sender, curvesMinted_);
         return (curvesMinted_, deposits_);
     }
 
@@ -746,11 +682,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         return ProportionalLiquidity.viewProportionalDeposit(curve, _deposit);
     }
 
-    function increaseTotalMint(address minter, uint256 amount) internal {
-        uint256 original = curve.totalMinted[minter];
-        curve.totalMinted[minter] = original.add(amount);
-    }
-
     /// @notice  Emergency withdraw tokens in the event that the oracle somehow bugs out
     ///          and no one is able to withdraw due to the invariant check
     /// @param   _curvesToBurn the full amount you want to withdraw from the pool which will be withdrawn from evenly amongst the
@@ -764,7 +695,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         noDelegateCall
         returns (uint256[] memory withdrawals_)
     {
-        decreaseTotalMint(msg.sender, _curvesToBurn);
         return ProportionalLiquidity.proportionalWithdraw(curve, _curvesToBurn);
     }
 
@@ -780,12 +710,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
         isNotEmergency
         returns (uint256[] memory withdrawals_)
     {
-        if (whitelistingStage) {
-            whitelistedDeposited[msg.sender] = whitelistedDeposited[msg.sender]
-                .sub(_curvesToBurn);
-        }
-
-        decreaseTotalMint(msg.sender, _curvesToBurn);
         return ProportionalLiquidity.proportionalWithdraw(curve, _curvesToBurn);
     }
 
@@ -805,11 +729,6 @@ contract Curve is Storage, MerkleProver, NoDelegateCall {
                 curve,
                 _curvesToBurn
             );
-    }
-
-    function decreaseTotalMint(address burner, uint256 amount) internal {
-        uint256 original = curve.totalMinted[burner];
-        curve.totalMinted[burner] = original.sub(amount);
     }
 
     function supportsInterface(bytes4 _interface)

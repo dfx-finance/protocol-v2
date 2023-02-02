@@ -30,12 +30,12 @@ contract AssimilatorV2 is IAssimilator {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 private constant usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    IERC20 public constant usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
-    IOracle private immutable oracle;
-    IERC20 private immutable token;
-    uint256 private immutable oracleDecimals;
-    uint256 private immutable tokenDecimals;
+    IOracle public immutable oracle;
+    IERC20 public immutable token;
+    uint256 public immutable oracleDecimals;
+    uint256 public immutable tokenDecimals;
 
     // solhint-disable-next-line
     constructor(
@@ -62,7 +62,7 @@ contract AssimilatorV2 is IAssimilator {
         uint256 _balance = token.balanceOf(address(this));
 
         uint256 _rate = getRate();
-
+        
         balance_ = ((_balance * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
 
         amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
@@ -80,9 +80,7 @@ contract AssimilatorV2 is IAssimilator {
     // takes a numeraire amount, calculates the raw amount of eurs, transfers it in and returns the corresponding raw amount
     function intakeNumeraire(int128 _amount) external override returns (uint256 amount_) {
         uint256 _rate = getRate();
-
         amount_ = (_amount.mulu(10**tokenDecimals) * 10**oracleDecimals) / _rate;
-
         token.safeTransferFrom(msg.sender, address(this), amount_);
     }
 
@@ -110,20 +108,14 @@ contract AssimilatorV2 is IAssimilator {
     }
 
     // takes a raw amount of eurs and transfers it out, returns numeraire value of the raw amount
-    function outputRawAndGetBalance(address _dst, uint256 _amount)
-        external
-        override
-        returns (int128 amount_, int128 balance_)
-    {
+    function outputRawAndGetBalance(address _dst, uint256 _amount) external override returns (int128 amount_, int128 balance_){
         uint256 _rate = getRate();
-
-        uint256 _tokenAmount = ((_amount) * _rate) / 10**oracleDecimals;
-
-        token.safeTransfer(_dst, _tokenAmount);
+            
+        token.safeTransfer(_dst, _amount);
 
         uint256 _balance = token.balanceOf(address(this));
 
-        amount_ = _tokenAmount.divu(10**tokenDecimals);
+        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
 
         balance_ = ((_balance * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
     }
@@ -132,11 +124,9 @@ contract AssimilatorV2 is IAssimilator {
     function outputRaw(address _dst, uint256 _amount) external override returns (int128 amount_) {
         uint256 _rate = getRate();
 
-        uint256 _tokenAmount = (_amount * _rate) / 10**oracleDecimals;
+        token.safeTransfer(_dst, _amount);
 
-        token.safeTransfer(_dst, _tokenAmount);
-
-        amount_ = _tokenAmount.divu(10**tokenDecimals);
+        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
     }
 
     // takes a numeraire value of eurs, figures out the raw amount, transfers raw amount out, and returns raw amount
