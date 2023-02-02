@@ -218,7 +218,7 @@ contract CurveFactoryV2Test is Test {
         cadc.approve(address(dfxCadcCurve), type(uint).max);
         usdc.approve(address(dfxCadcCurve), type(uint).max);
 
-        dfxCadcCurve.deposit(100_000e18 + _extraAmt,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
+        dfxCadcCurve.deposit(100_000e18 + _extraAmt, 0, 0,type(uint256).max, type(uint256).max, block.timestamp + 60);
         cheats.stopPrank();
     }
 
