@@ -38,9 +38,6 @@ contract Storage {
         uint256 totalSupply;
         mapping(address => uint256) balances;
         mapping(address => mapping(address => uint256)) allowances;
-
-        // store how many lp tokens are minted & burnt to a wallet
-        mapping (address => uint256) totalMinted;
     }
 
     struct Assimilator {
@@ -65,8 +62,5 @@ contract Storage {
     // Curve operational state
     bool public frozen = false;
     bool public emergency = false;
-    bool public whitelistingStage = true;
     bool internal notEntered = true;
-
-    mapping(address => uint256) public whitelistedDeposited;
 }

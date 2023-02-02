@@ -71,7 +71,6 @@ contract CurveFactoryV2Test is Test {
         );
 
         dfxCadcCurve = curveFactory.newCurve(cadcCurveInfo);
-        dfxCadcCurve.turnOffWhitelisting();
         // Euroc Curve
         CurveInfo memory eurocCurveInfo = CurveInfo(
             string.concat("dfx-", euroc.name()),
@@ -90,7 +89,6 @@ contract CurveFactoryV2Test is Test {
         );
 
         dfxEurocCurve = curveFactory.newCurve(eurocCurveInfo);
-        dfxEurocCurve.turnOffWhitelisting();
         cheats.stopPrank();
     }
 
@@ -249,7 +247,6 @@ contract CurveFactoryV2Test is Test {
     }
 
     function test_depositPoolCap() public {
-        
         // set pool cap to 100k
         config.setPoolCap(address(dfxEurocCurve), 100_000e18);
 
