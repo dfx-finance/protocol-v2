@@ -11,6 +11,7 @@ import "../../src/interfaces/IERC20Detailed.sol";
 import "../../src/AssimilatorFactory.sol";
 import "../../src/CurveFactoryV2.sol";
 import "../../src/Curve.sol";
+import "../../src/Config.sol";
 import "../../src/Structs.sol";
 import "../../src/lib/ABDKMath64x64.sol";
 
@@ -31,7 +32,8 @@ contract TargetSwapFeeTest is Test {
 
     // account order is lp provider, trader, treasury
     MockUser[] public accounts;
-
+    MockUser treasury;
+    
     MockOracleFactory oracleFactory;
     // token order is gold, euroc, cadc, usdc
     IERC20Detailed[] public tokens;
@@ -43,8 +45,12 @@ contract TargetSwapFeeTest is Test {
 
     CurveFactoryV2 curveFactory;
     AssimilatorFactory assimFactory;
+    Config config;
+
+    int128 public protocolFee = 50000;
 
     function setUp() public {
+        treasury = new MockUser();
         utils = new Utils();
         // create temp accounts
         for (uint256 i = 0; i < 4; ++i) {
@@ -71,12 +77,13 @@ contract TargetSwapFeeTest is Test {
         oracles.push(IOracle(Mainnet.CHAINLINK_CAD_USD));
         oracles.push(IOracle(Mainnet.CHAINLINK_USDC_USD));
 
+        config = new Config(protocolFee,address(treasury));
+
         // deploy new assimilator factory & curveFactory v2
         assimFactory = new AssimilatorFactory();
         curveFactory = new CurveFactoryV2(
-            50000,
-            address(accounts[2]),
-            address(assimFactory)
+            address(assimFactory),
+            address(config)
         );
         assimFactory.setCurveFactory(address(curveFactory));
         // now deploy curves
@@ -90,9 +97,7 @@ contract TargetSwapFeeTest is Test {
                 DefaultCurve.BASE_WEIGHT,
                 DefaultCurve.QUOTE_WEIGHT,
                 oracles[i],
-                tokens[i].decimals(),
                 oracles[3],
-                tokens[3].decimals(),
                 DefaultCurve.ALPHA,
                 DefaultCurve.BETA,
                 DefaultCurve.MAX,
