@@ -313,7 +313,7 @@ contract CurveFactoryV2Test is Test {
         usdc.approve(address(dfxCadcCurve), type(uint256).max);
         
         // the LP provides $2M worth of LP
-        dfxCadcCurve.deposit(2_000_000e18, block.timestamp + 60);
+        dfxCadcCurve.deposit(2_000_000e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
         cheats.stopPrank();
         
         cheats.startPrank(address(swapper));

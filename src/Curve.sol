@@ -668,7 +668,7 @@ contract Curve is Storage, NoDelegateCall {
         (
             uint256 curvesMinted_,
             uint256[] memory deposits_
-        ) = ProportionalLiquidity.proportionalDeposit(curve, _deposit);
+        ) = ProportionalLiquidity.proportionalDeposit(curve, _depositData);
         return (curvesMinted_, deposits_);
     }
 

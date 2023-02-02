@@ -12,6 +12,7 @@ import "../../src/interfaces/IERC20Detailed.sol";
 import "../../src/AssimilatorFactory.sol";
 import "../../src/CurveFactoryV2.sol";
 import "../../src/Curve.sol";
+import "../../src/Config.sol";
 import "../../src/Structs.sol";
 import "../../src/lib/ABDKMath64x64.sol";
 
@@ -44,6 +45,9 @@ contract SwapFeeTest is Test {
 
     CurveFactoryV2 curveFactory;
     AssimilatorFactory assimFactory;
+    Config config;
+
+    int128 public protocolFee = 50000;
 
     function setUp() public {
         utils = new Utils();
@@ -72,12 +76,13 @@ contract SwapFeeTest is Test {
         oracles.push(IOracle(Mainnet.CHAINLINK_CAD_USD));
         oracles.push(IOracle(Mainnet.CHAINLINK_USDC_USD));
 
+        config = new Config(protocolFee,address(accounts[2]));
         // deploy new assimilator factory & curveFactory v2
+        
         assimFactory = new AssimilatorFactory();
         curveFactory = new CurveFactoryV2(
-            50000,
-            address(accounts[2]),
-            address(assimFactory)
+            address(assimFactory),
+            address(config)
         );
         assimFactory.setCurveFactory(address(curveFactory));
         // now deploy curves
@@ -91,9 +96,7 @@ contract SwapFeeTest is Test {
                 DefaultCurve.BASE_WEIGHT,
                 DefaultCurve.QUOTE_WEIGHT,
                 oracles[i],
-                tokens[i].decimals(),
                 oracles[3],
-                tokens[3].decimals(),
                 DefaultCurve.ALPHA,
                 DefaultCurve.BETA,
                 DefaultCurve.MAX,
@@ -152,7 +155,7 @@ contract SwapFeeTest is Test {
 
             // first deposit
             cheats.startPrank(address(accounts[0]));
-            curves[i + 1].deposit(1000000000 * 1e18, block.timestamp + 60);
+            curves[i + 1].deposit(1000000000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
             cheats.stopPrank();
 
             cheats.startPrank(address(accounts[1]));
@@ -193,7 +196,7 @@ contract SwapFeeTest is Test {
 
             // first deposit
             cheats.startPrank(address(accounts[0]));
-            curves[i + 1].deposit(1000000000 * 1e18, block.timestamp + 60);
+            curves[i + 1].deposit(1000000000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
             cheats.stopPrank();
 
             cheats.startPrank(address(accounts[1]));
