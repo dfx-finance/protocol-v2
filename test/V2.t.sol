@@ -293,7 +293,7 @@ contract V2Test is Test {
         cheats.assume(percentage < 100);
         for(uint256 i = 0; i < 3; ++i){
             cheats.startPrank(address(accounts[0]));
-            curves[i].deposit(10000000 * decimals[i],block.timestamp + 60);
+            curves[i].deposit(10000000 * 1e18,block.timestamp + 60);
             cheats.stopPrank();
             uint256 poolForexBal = tokens[i].balanceOf(address(curves[i]));
             uint256 poolUSDCBal = tokens[3].balanceOf(address(curves[i]));
@@ -307,7 +307,7 @@ contract V2Test is Test {
             cheats.startPrank(address(accounts[0]));
             tokens[i].approve(address(curves[i]), type(uint).max);
             tokens[3].approve(address(curves[i]), type(uint).max);
-            curves[i].deposit(poolForexBal.mul(100).div(percentage), block.timestamp + 60);
+            curves[i].deposit(poolForexBal.mul(percentage).div(100), block.timestamp + 60);
             cheats.stopPrank();
         }
     }

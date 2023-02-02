@@ -70,6 +70,7 @@ library ProportionalLiquidity {
             _newShells = _newShells.div(_oGLiq);
         }
 
+        require(_newShells > 0, "Proportional Liquidity/can't mint negative amount");
         mint(curve, msg.sender, curves_ = _newShells.mulu(1e18));
 
         return (curves_, deposits_);
