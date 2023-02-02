@@ -7,6 +7,7 @@ import "../src/AssimilatorFactory.sol";
 import "../src/CurveFactoryV2.sol";
 import "../src/Curve.sol";
 import "../src/Router.sol";
+import "../src/Config.sol";
 import "../src/interfaces/IERC20Detailed.sol";
 
 import "./lib/MockUser.sol";
@@ -24,7 +25,9 @@ contract CurveFactoryV2Test is Test {
 
     AssimilatorFactory assimilatorFactory;
     CurveFactoryV2 curveFactory;
-    
+
+    Config config;
+
     IERC20Detailed usdc = IERC20Detailed(Mainnet.USDC);
     IERC20Detailed cadc = IERC20Detailed(Mainnet.CADC);
     IERC20Detailed euroc = IERC20Detailed(Mainnet.EUROC);
@@ -50,11 +53,12 @@ contract CurveFactoryV2Test is Test {
         liquidityProvider = new MockUser();
         swapper = new MockUser();
 
+        config = new Config(protocolFee,address(treasury));
+
         assimilatorFactory = new AssimilatorFactory();
         curveFactory = new CurveFactoryV2(
-            protocolFee,
-            address(treasury),
-            address(assimilatorFactory)
+            address(assimilatorFactory),
+            address(config)
         );
 
         router = new Router(address(curveFactory));
@@ -77,11 +81,8 @@ contract CurveFactoryV2Test is Test {
             address(usdc),
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
-            // TODO change back to cadcOracle
             fakeCadcOracles,
-            cadc.decimals(),
             usdcOracle,
-            usdc.decimals(),
             DefaultCurve.ALPHA,
             DefaultCurve.BETA,
             DefaultCurve.MAX,
@@ -90,7 +91,6 @@ contract CurveFactoryV2Test is Test {
         );
 
         dfxCadcCurve = curveFactory.newCurve(cadcCurveInfo);
-        dfxCadcCurve.turnOffWhitelisting();
         // Euroc Curve
         CurveInfo memory eurocCurveInfo = CurveInfo(
             string.concat("dfx-", euroc.name()),
@@ -100,9 +100,7 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
             eurocOracle,
-            euroc.decimals(),
             usdcOracle,
-            usdc.decimals(),
             DefaultCurve.ALPHA,
             DefaultCurve.BETA,
             DefaultCurve.MAX,
@@ -111,7 +109,6 @@ contract CurveFactoryV2Test is Test {
         );
 
         dfxEurocCurve = curveFactory.newCurve(eurocCurveInfo);
-        dfxEurocCurve.turnOffWhitelisting();
         cheats.stopPrank();
     }
 
@@ -124,9 +121,7 @@ contract CurveFactoryV2Test is Test {
             DefaultCurve.BASE_WEIGHT,
             DefaultCurve.QUOTE_WEIGHT,
             cadcOracle,
-            cadc.decimals(),
             usdcOracle,
-            usdc.decimals(),
             DefaultCurve.ALPHA,
             DefaultCurve.BETA,
             DefaultCurve.MAX,
@@ -139,29 +134,29 @@ contract CurveFactoryV2Test is Test {
 
     function testUpdateFee() public {
         int128 newFee = 100_000;
-        curveFactory.updateProtocolFee(newFee);
+        config.updateProtocolFee(newFee);
         assertEq(newFee, curveFactory.getProtocolFee());
     }
 
     function testFailUpdateFee() public {
         int128 newFee = 100_001;
-        curveFactory.updateProtocolFee(newFee);
+        config.updateProtocolFee(newFee);
     }
 
     function testUpdateTreasury() public {
         assertEq(address(treasury), curveFactory.getProtocolTreasury());
-        curveFactory.updateProtocolTreasury(address(newTreasury));
+        config.updateProtocolTreasury(address(newTreasury));
         assertEq(address(newTreasury), curveFactory.getProtocolTreasury());
     }
 
     // Global Transactable State Frozen
     function testFail_OwnerSetGlobalFrozen() public {
         cheats.prank(address(liquidityProvider));
-        ICurveFactory(address(curveFactory)).setGlobalFrozen(true);
+        IConfig(address(config)).setGlobalFrozen(true);
     }
 
     function testFail_GlobalFrozenDeposit() public {
-        ICurveFactory(address(curveFactory)).setGlobalFrozen(true);
+        IConfig(address(config)).setGlobalFrozen(true);
         
         cheats.prank(address(liquidityProvider));
         dfxCadcCurve.deposit(100_000, block.timestamp + 60);
@@ -182,7 +177,7 @@ contract CurveFactoryV2Test is Test {
         assertEq(dfxCadcCurve.balanceOf(address(liquidityProvider)), 100_000e18);
 
         cheats.prank(address(this));
-        ICurveFactory(address(curveFactory)).setGlobalFrozen(true);
+        IConfig(address(config)).setGlobalFrozen(true);
         
         // can still withdraw after global freeze
         cheats.prank(address(liquidityProvider));
@@ -193,9 +188,9 @@ contract CurveFactoryV2Test is Test {
         cheats.assume(_gGuardAmt > 10_000e18);
         cheats.assume(_gGuardAmt < 100_000_000e18);
         // enable global guard
-        curveFactory.toggleGlobalGuarded();
+        config.toggleGlobalGuarded();
         // set global guard amount to 100k
-        curveFactory.setGlobalGuardAmount(_gGuardAmt);
+        config.setGlobalGuardAmount(_gGuardAmt);
 
         deal(address(cadc), address(liquidityProvider), _gGuardAmt * 2);
         deal(address(usdc), address(liquidityProvider), _gGuardAmt / 1e12);
@@ -212,9 +207,9 @@ contract CurveFactoryV2Test is Test {
         cheats.assume(_extraAmt > 1);
         cheats.assume(_extraAmt < 100_100e18);
         // enable global guard
-        curveFactory.toggleGlobalGuarded();
+        config.toggleGlobalGuarded();
         // set global guard amount to 100k
-        curveFactory.setGlobalGuardAmount(100_000e18);
+        config.setGlobalGuardAmount(100_000e18);
 
         deal(address(cadc), address(liquidityProvider), 200_000e18);
         deal(address(usdc), address(liquidityProvider), 200_000e6);
@@ -231,12 +226,12 @@ contract CurveFactoryV2Test is Test {
         cheats.assume(_extraAmt > 1);
         cheats.assume(_extraAmt < 20_000e18);
         // enable global guard
-        curveFactory.toggleGlobalGuarded();
+        config.toggleGlobalGuarded();
         // set global guard amount to 100k
-        curveFactory.setGlobalGuardAmount(100_000e18);
+        config.setGlobalGuardAmount(100_000e18);
         // while global guard amt is 100k, Euroc pool guard amt is 80k
-        curveFactory.setPoolGuarded( address(dfxEurocCurve), true );
-        curveFactory.setPoolGuardAmount(address(dfxEurocCurve), 80_000e18);
+        config.setPoolGuarded( address(dfxEurocCurve), true );
+        config.setPoolGuardAmount(address(dfxEurocCurve), 80_000e18);
 
         deal(address(euroc), address(liquidityProvider), 300_000e6);
         deal(address(usdc), address(liquidityProvider), 300_000e6);
@@ -253,12 +248,12 @@ contract CurveFactoryV2Test is Test {
         cheats.assume(_extraAmt > 1);
         cheats.assume(_extraAmt < 20_000e18);
         // enable global guard
-        curveFactory.toggleGlobalGuarded();
+        config.toggleGlobalGuarded();
         // set global guard amount to 100k
-        curveFactory.setGlobalGuardAmount(100_000e18);
+        config.setGlobalGuardAmount(100_000e18);
         // while global guard amt is 100k, Euroc pool guard amt is 80k
-        curveFactory.setPoolGuarded( address(dfxEurocCurve), true );
-        curveFactory.setPoolGuardAmount(address(dfxEurocCurve), 80_000e18);
+        config.setPoolGuarded( address(dfxEurocCurve), true );
+        config.setPoolGuardAmount(address(dfxEurocCurve), 80_000e18);
 
         deal(address(euroc), address(liquidityProvider), 300_000e6);
         deal(address(usdc), address(liquidityProvider), 300_000e6);
@@ -272,9 +267,8 @@ contract CurveFactoryV2Test is Test {
     }
 
     function test_depositPoolCap() public {
-        
         // set pool cap to 100k
-        curveFactory.setPoolCap(address(dfxEurocCurve), 100_000e18);
+        config.setPoolCap(address(dfxEurocCurve), 100_000e18);
 
         deal(address(euroc), address(liquidityProvider), 200_000e6);
         deal(address(usdc), address(liquidityProvider), 200_000e6);
@@ -291,7 +285,7 @@ contract CurveFactoryV2Test is Test {
         cheats.assume(_extraAmt > 1);
         cheats.assume(_extraAmt < 10_000e18);
         // set pool cap to 100k
-        curveFactory.setPoolCap(address(dfxEurocCurve), 100_000e18);
+        config.setPoolCap(address(dfxEurocCurve), 100_000e18);
 
         deal(address(euroc), address(liquidityProvider), 200_000e6);
         deal(address(usdc), address(liquidityProvider), 200_000e6);
@@ -338,5 +332,74 @@ contract CurveFactoryV2Test is Test {
         cheats.stopPrank();
 
         require(usdc.balanceOf(address(swapper)) >= 1510000e6, "free money!!");
+    }
+    
+    function testFail_invalidNewCurveBase() public {
+        cheats.startPrank(address(treasury));
+        CurveInfo memory invalidCurveInfo = CurveInfo(
+            string.concat("dfx-", cadc.name()),
+            string.concat("dfx-", cadc.symbol()),
+            // USDC as base
+            address(usdc),
+            address(usdc),
+            DefaultCurve.BASE_WEIGHT,
+            DefaultCurve.QUOTE_WEIGHT,
+            cadcOracle,
+            usdcOracle,
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
+        );
+        
+        dfxEurocCurve = curveFactory.newCurve(invalidCurveInfo);
+        cheats.stopPrank();
+    }
+
+    function testFail_invalidNewCurveQuote() public {
+        cheats.startPrank(address(treasury));
+        CurveInfo memory invalidCurveInfo = CurveInfo(
+            string.concat("dfx-", cadc.name()),
+            string.concat("dfx-", cadc.symbol()),
+            // Non USDC as quote
+            address(usdc),
+            address(cadc),
+            DefaultCurve.BASE_WEIGHT,
+            DefaultCurve.QUOTE_WEIGHT,
+            cadcOracle,
+            usdcOracle,
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
+        );
+        
+        dfxEurocCurve = curveFactory.newCurve(invalidCurveInfo);
+        cheats.stopPrank();
+    }
+
+    function testFail_invalidNewCurveWeights() public {
+        cheats.startPrank(address(treasury));
+        CurveInfo memory invalidCurveInfo = CurveInfo(
+            string.concat("dfx-", cadc.name()),
+            string.concat("dfx-", cadc.symbol()),
+            address(cadc),
+            address(usdc),
+            // Smaller weight
+            5e16,
+            5e16,
+            cadcOracle,
+            usdcOracle,
+            DefaultCurve.ALPHA,
+            DefaultCurve.BETA,
+            DefaultCurve.MAX,
+            DefaultCurve.EPSILON,
+            DefaultCurve.LAMBDA
+        );
+        
+        dfxEurocCurve = curveFactory.newCurve(invalidCurveInfo);
+        cheats.stopPrank();
     }
 }
