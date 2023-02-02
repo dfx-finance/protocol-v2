@@ -136,7 +136,7 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
             _info._epsilon,
             _info._lambda
         );
-        curve.transferOwnership(protocolTreasury);
+        curve.transferOwnership(getProtocolTreasury());
         curves[curveId] = address(curve);
 
         emit NewCurve(msg.sender, curveId, address(curve));
