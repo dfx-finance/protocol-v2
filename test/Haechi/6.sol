@@ -32,7 +32,6 @@ contract TargetSwapFeeTest is Test {
 
     // account order is lp provider, trader, treasury
     MockUser[] public accounts;
-    MockUser treasury;
     
     MockOracleFactory oracleFactory;
     // token order is gold, euroc, cadc, usdc
@@ -50,7 +49,6 @@ contract TargetSwapFeeTest is Test {
     int128 public protocolFee = 50000;
 
     function setUp() public {
-        treasury = new MockUser();
         utils = new Utils();
         // create temp accounts
         for (uint256 i = 0; i < 4; ++i) {
@@ -77,7 +75,7 @@ contract TargetSwapFeeTest is Test {
         oracles.push(IOracle(Mainnet.CHAINLINK_CAD_USD));
         oracles.push(IOracle(Mainnet.CHAINLINK_USDC_USD));
 
-        config = new Config(protocolFee,address(treasury));
+        config = new Config(protocolFee, address(accounts[2]));
 
         // deploy new assimilator factory & curveFactory v2
         assimFactory = new AssimilatorFactory();
