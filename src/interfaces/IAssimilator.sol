@@ -16,15 +16,25 @@
 pragma solidity ^0.8.13;
 
 interface IAssimilator {
+    function oracleDecimals() external view returns(uint256);
+    
+    function tokenDecimals() external view returns(uint256);
+
     function getRate() external view returns (uint256);
 
     function intakeRaw(uint256 amount) external returns (int128);
 
-    function intakeRawAndGetBalance(uint256 amount) external returns (int128, int128);
+    function intakeRawAndGetBalance(uint256 amount)
+        external
+        returns (int128, int128);
 
     function intakeNumeraire(int128 amount) external returns (uint256);
 
     function intakeNumeraireLPRatio(
+        uint256,
+        uint256,
+        uint256,
+        uint256,
         uint256,
         uint256,
         address,
@@ -33,9 +43,13 @@ interface IAssimilator {
 
     function outputRaw(address dst, uint256 amount) external returns (int128);
 
-    function outputRawAndGetBalance(address dst, uint256 amount) external returns (int128, int128);
+    function outputRawAndGetBalance(address dst, uint256 amount)
+        external
+        returns (int128, int128);
 
-    function outputNumeraire(address dst, int128 amount) external returns (uint256);
+    function outputNumeraire(address dst, int128 amount)
+        external
+        returns (uint256);
 
     function viewRawAmount(int128) external view returns (uint256);
 
@@ -56,7 +70,10 @@ interface IAssimilator {
 
     function viewNumeraireBalance(address) external view returns (int128);
 
-    function viewNumeraireAmountAndBalance(address, uint256) external view returns (int128, int128);
+    function viewNumeraireAmountAndBalance(address, uint256)
+        external
+        view
+        returns (int128, int128);
 
-    function transferFee(int128, address) external returns (bool);
+    function transferFee(int128, address) external;
 }

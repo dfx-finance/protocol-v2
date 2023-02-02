@@ -13,7 +13,9 @@ import "../src/interfaces/IERC20Detailed.sol";
 import "../src/AssimilatorFactory.sol";
 import "../src/CurveFactoryV2.sol";
 import "../src/Curve.sol";
+import "../src/Config.sol";
 import "../src/Structs.sol";
+import "../src/Zap.sol";
 import "../src/lib/ABDKMath64x64.sol";
 
 import "./lib/MockUser.sol";
@@ -43,6 +45,7 @@ contract V2Test is Test {
 
     uint256[] public dividends = [20,2];
 
+    Config config;
     CurveFactoryV2 curveFactory;
     AssimilatorFactory assimFactory;
 
@@ -71,10 +74,12 @@ contract V2Test is Test {
         oracles.push(IOracle(Mainnet.CHAINLINK_CAD_USD));
         oracles.push(IOracle(Mainnet.CHAINLINK_USDC_USD));
 
+        config = new Config(50000,address(accounts[2]));
         // deploy new assimilator factory & curveFactory v2
         assimFactory = new AssimilatorFactory();
         curveFactory = new CurveFactoryV2(
-            50000, address(accounts[2]), address(assimFactory)
+             address(assimFactory),
+             address(config)
         );
         assimFactory.setCurveFactory(address(curveFactory));
         // now deploy curves
@@ -88,9 +93,7 @@ contract V2Test is Test {
                 DefaultCurve.BASE_WEIGHT,
                 DefaultCurve.QUOTE_WEIGHT,
                 oracles[i],
-                tokens[i].decimals(),
                 oracles[3],
-                tokens[3].decimals(),
                 DefaultCurve.ALPHA,
                 DefaultCurve.BETA,
                 DefaultCurve.MAX,
@@ -144,7 +147,7 @@ contract V2Test is Test {
 
         // first deposit
         cheats.startPrank(address(accounts[0]));
-        curves[0].deposit(2000000000 * decimals[0],block.timestamp + 60);
+        curves[0].deposit(2000000000 * decimals[0],0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
         cheats.stopPrank();
 
         cheats.startPrank(address(accounts[1]));
@@ -187,7 +190,7 @@ contract V2Test is Test {
 
             // first deposit
             cheats.startPrank(address(accounts[0]));
-            curves[i+1].deposit(1000000000 * 1e18, block.timestamp + 60);
+            curves[i+1].deposit(1000000000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
             cheats.stopPrank();
 
             cheats.startPrank(address(accounts[1]));
@@ -251,7 +254,7 @@ contract V2Test is Test {
         for(uint256 i = 0; i < 3; ++i){
             // first deposit from the depositor
             cheats.startPrank(address(accounts[0]));
-            curves[i].deposit(10000000 * decimals[i],block.timestamp + 60);
+            curves[i].deposit(10000000 * decimals[i],0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
             cheats.stopPrank();
             uint256 poolForexBal = tokens[i].balanceOf(address(curves[i]));
             // mint gold to trader
@@ -293,7 +296,7 @@ contract V2Test is Test {
         cheats.assume(percentage < 100);
         for(uint256 i = 0; i < 3; ++i){
             cheats.startPrank(address(accounts[0]));
-            curves[i].deposit(10000000 * 1e18,block.timestamp + 60);
+            curves[i].deposit(10000000 * decimals[i],0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
             cheats.stopPrank();
             uint256 poolForexBal = tokens[i].balanceOf(address(curves[i]));
             uint256 poolUSDCBal = tokens[3].balanceOf(address(curves[i]));
@@ -307,7 +310,7 @@ contract V2Test is Test {
             cheats.startPrank(address(accounts[0]));
             tokens[i].approve(address(curves[i]), type(uint).max);
             tokens[3].approve(address(curves[i]), type(uint).max);
-            curves[i].deposit(poolForexBal.mul(percentage).div(100), block.timestamp + 60);
+            curves[i].deposit(poolForexBal.div(percentage).mul(100),0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
             cheats.stopPrank();
         }
     }
