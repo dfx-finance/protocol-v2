@@ -31,7 +31,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public constant usdc = IERC20(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174);
+    IERC20 public immutable usdc;
 
     IOracle public immutable oracle;
     IERC20 public immutable token;
