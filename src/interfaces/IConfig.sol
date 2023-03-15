@@ -35,4 +35,7 @@ interface IConfig {
 
     function updateProtocolFee(int128) external;
 
+    function addNewQuoteCurrency(address, uint256, address, uint256) external;
+
+    function removeQuoteCurrency(address, address) external;
 }

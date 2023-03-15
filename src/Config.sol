@@ -6,10 +6,20 @@ pragma experimental ABIEncoderV2;
 import "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import "./interfaces/IERC20Detailed.sol";
 import "./interfaces/IConfig.sol";
+import "./interfaces/IOracle.sol";
 
 contract Config is Ownable, IConfig, ReentrancyGuard {
     using Address for address;
+
+    struct QuoteCurrency {
+        uint256 id;
+        address currency;
+        uint256 currencyDecimal;
+        address oracle;
+        uint256 oracleDecimal;
+    }
 
     // add protocol fee
     int128 public totalFeePercentage = 100000;
@@ -27,6 +37,12 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
     mapping (address => uint256) public poolGuardAmt;
     mapping (address => uint256) public poolCapAmt;
 
+    // mapping quote currencies
+    mapping(uint256 => QuoteCurrency) public quoteCurrencies;
+    mapping(uint256 => bool) public isQuoteAdded;
+    mapping(address => bool) public isQuoteUsed;
+    mapping(address => bool) public isOracleUsed;
+
     event GlobalFrozenSet(bool isFrozen);
     event FlashableSet(bool isFlashable);
     event TreasuryUpdated(address indexed newTreasury);
@@ -36,6 +52,7 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
     event PoolGuardSet (address indexed pool, bool isGuarded);
     event PoolGuardAmountSet (address indexed pool, uint256 guardAmount);
     event PoolCapSet (address indexed pool, uint256 cap);
+    event NewQuoteAdded (address indexed quote, uint256 quoteDecimal, address indexed oracle, uint256 oracleDecimal);
 
     constructor (
         int128 _protocolFee,
@@ -133,5 +150,35 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
         require(_newFee != protocolFee, "CurveFactory/same-protocol-fee");
         protocolFee = _newFee;
         emit ProtocolFeeUpdated(protocolTreasury, protocolFee);
+    }
+
+    function addNewQuoteCurrency(address _quote, uint256 _quoteDecimal, address _oracle, uint256 _oracleDecimal) external onlyOwner {
+        uint256 id = uint256(keccak256(abi.encode(_quote, _oracle)));
+        require(!isQuoteAdded[id], "quote already added");
+        require(_quote.isContract(), "invalid quote");
+        require(_oracle.isContract(), "invalid oracle");
+        require(!isOracleUsed[_oracle], "oracle already used for other quote");
+        require(!isQuoteUsed[_quote], "quote already used with another oracle");
+        require(IOracle(_oracle).decimals() == _oracleDecimal, "invalid oracle decimal");
+        require(IERC20Detailed(_quote).decimals() == _quoteDecimal, "invalid quote decimal");
+        QuoteCurrency memory quoteCurreny;
+        quoteCurreny.id = id;
+        quoteCurreny.currency = _quote;
+        quoteCurreny.currencyDecimal = _quoteDecimal;
+        quoteCurreny.oracle = _oracle;
+        quoteCurreny.oracleDecimal = _oracleDecimal;
+        quoteCurrencies[id] = quoteCurreny;
+        isQuoteAdded[id] = true;
+        isQuoteUsed[_quote] = true;
+        isOracleUsed[_oracle] = true;
+        emit NewQuoteAdded(_quote, _quoteDecimal, _oracle, _oracleDecimal);
+    }
+
+    function removeQuoteCurrency(address _quote, address _oracle) external onlyOwner {
+        uint256 id = uint256(keccak256(abi.encode(_quote, _oracle)));
+        require(isQuoteAdded[id], "quote is not added");
+        delete isQuoteAdded[id];
+        delete isQuoteUsed[_quote];
+        delete isOracleUsed[_oracle];
     }
 }

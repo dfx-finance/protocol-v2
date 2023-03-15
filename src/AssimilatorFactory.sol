@@ -12,7 +12,8 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
         bytes32 indexed id,
         address indexed assimilator,
         address oracle,
-        address token
+        address token,
+        address quote
     );
     event AssimilatorRevoked(
         address indexed caller,
@@ -41,25 +42,27 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
         emit CurveFactoryUpdated(msg.sender, curveFactory);
     }
 
-    function getAssimilator(address _token)
+    function getAssimilator(address _token, address _quote)
         external
         view
         override
         returns (AssimilatorV2)
     {
-        bytes32 assimilatorID = keccak256(abi.encode(_token));
+        bytes32 assimilatorID = keccak256(abi.encode(_token,_quote));
         return assimilators[assimilatorID];
     }
 
     function newAssimilator(
+        address _quote,
         IOracle _oracle,
         address _token,
         uint256 _tokenDecimals
     ) external override onlyCurveFactoryOrOwner returns (AssimilatorV2) {
-        bytes32 assimilatorID = keccak256(abi.encode(_token));
+        bytes32 assimilatorID = keccak256(abi.encode(_token, _quote));
         if (address(assimilators[assimilatorID]) != address(0))
             revert("AssimilatorFactory/oracle-stablecoin-pair-already-exists");
         AssimilatorV2 assimilator = new AssimilatorV2(
+            _quote,
             _oracle,
             _token,
             _tokenDecimals,
@@ -71,13 +74,14 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
             assimilatorID,
             address(assimilator),
             address(_oracle),
-            _token
+            _token,
+            _quote
         );
         return assimilator;
     }
 
-    function revokeAssimilator(address _token) external onlyOwner {
-        bytes32 assimilatorID = keccak256(abi.encode(_token));
+    function revokeAssimilator(address _token, address _quote) external onlyOwner {
+        bytes32 assimilatorID = keccak256(abi.encode(_token,_quote));
         address _assimAddress = address(assimilators[assimilatorID]);
         assimilators[assimilatorID] = AssimilatorV2(address(0));
         emit AssimilatorRevoked(

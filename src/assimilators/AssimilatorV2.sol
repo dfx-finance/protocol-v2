@@ -31,7 +31,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable usdc;
+    IERC20 public immutable quote;
 
     IOracle public immutable oracle;
     IERC20 public immutable token;
@@ -40,6 +40,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
 
     // solhint-disable-next-line
     constructor(
+        address _quote,
         IOracle _oracle,
         address _token,
         uint256 _tokenDecimals,
@@ -49,25 +50,12 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         token = IERC20(_token);
         oracleDecimals = _oracleDecimals;
         tokenDecimals = _tokenDecimals;
-        usdc = IERC20(quoteAddress());
-    }
-
-    function quoteAddress () internal view returns (address) {
-        uint256 chainID;
-        assembly {
-            chainID := chainid()
-        }
-        if(chainID == 1) {
-            return 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-        }else if (chainID == 137) {
-            return 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
-        }else{
-            return address(0);
-        }
+        quote = IERC20(_quote);
     }
 
     function getRate() public view override returns (uint256) {
         (, int256 price, , , ) = oracle.latestRoundData();
+        require(price >= 0, "invalid price oracle" );
         return uint256(price);
     }
 
@@ -135,14 +123,14 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
 
         _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
 
-        uint256 _usdcBal = usdc.balanceOf(_addr).mul(1e18).div(_quoteWeight);
+        uint256 _quoteBal = quote.balanceOf(_addr).mul(1e18).div(_quoteWeight);
 
         // Rate is in 1e6
-        uint256 _rate = _usdcBal.mul(10**tokenDecimals).div(_tokenBal);
+        uint256 _rate = _quoteBal.mul(10**tokenDecimals).div(_tokenBal);
 
         amount_ = (_amount.mulu(10**tokenDecimals) * 1e6) / _rate;
         
-        if (address(token) == address(usdc)) {
+        if (address(token) == address(quote)) {
             require(amount_ >= _minQuoteAmount && amount_ <= _maxQuoteAmount, "Assimilator/LP Ratio imbalanced!");
         } else {
             require(amount_ >= _minBaseAmount && amount_ <= _maxBaseAmount, "Assimilator/LP Ratio imbalanced!");
@@ -221,10 +209,10 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
 
         // 1e6
-        uint256 _usdcBal = usdc.balanceOf(_addr).mul(1e18).div(_quoteWeight);
+        uint256 _quoteBal = quote.balanceOf(_addr).mul(1e18).div(_quoteWeight);
 
         // Rate is in 1e6
-        uint256 _rate = _usdcBal.mul(10**tokenDecimals).div(_tokenBal);
+        uint256 _rate = _quoteBal.mul(10**tokenDecimals).div(_tokenBal);
 
         amount_ = (_amount.mulu(10**tokenDecimals) * 1e6) / _rate;
     }
@@ -293,10 +281,10 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
 
         if (_tokenBal <= 0) return ABDKMath64x64.fromUInt(0);
 
-        uint256 _usdcBal = usdc.balanceOf(_addr).mul(1e18).div(_quoteWeight);
+        uint256 _quoteBal = quote.balanceOf(_addr).mul(1e18).div(_quoteWeight);
 
         // Rate is in 1e6
-        uint256 _rate = _usdcBal.mul(1e18).div(
+        uint256 _rate = _quoteBal.mul(1e18).div(
             _tokenBal.mul(1e18).div(_baseWeight)
         );
 
