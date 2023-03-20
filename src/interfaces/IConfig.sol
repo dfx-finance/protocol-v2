@@ -35,6 +35,8 @@ interface IConfig {
 
     function updateProtocolFee(int128) external;
 
+    function isNewPairValid(address,address) external returns (bool);
+
     function addNewQuoteCurrency(address, uint256, address, uint256) external;
 
     function removeQuoteCurrency(address, address) external;

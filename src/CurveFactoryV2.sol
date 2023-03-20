@@ -37,8 +37,6 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
     IAssimilatorFactory public immutable assimilatorFactory;
     IConfig public config;
 
-    address private USDC;
-
     event NewCurve(
         address indexed caller,
         bytes32 indexed id,
@@ -113,17 +111,16 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
 
     function newCurve(CurveInfo memory _info) public returns (Curve) {
         require(
-            _info._quoteCurrency == quoteAddress(),
-            "CurveFactory/quote-currency-is-not-usdc"
+            _info._quoteCurrency != address(0),
+            "CurveFactory/quote-currency-zero-address"
         );
         require(
-            _info._baseCurrency != quoteAddress(),
+            _info._baseCurrency != _info._quoteCurrency,
             "CurveFactory/base-currency-is-usdc"
         );
-
         require(
-            _info._baseWeight == 5e17 && _info._quoteWeight == 5e17,
-            "CurveFactory/weights-not-50-percent"
+            (_info._baseWeight + _info._quoteWeight) == 1e18,
+            "CurveFactory/invalid-weights"
         );
 
         uint256 quoteDec = IERC20Detailed(_info._quoteCurrency).decimals();
@@ -134,25 +131,26 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         );
         if (curves[curveId] != address(0)) revert("CurveFactory/pair-exists");
         AssimilatorV2 _baseAssim;
-        _baseAssim = (assimilatorFactory.getAssimilator(_info._baseCurrency));
+        _baseAssim = (assimilatorFactory.getAssimilator(_info._baseCurrency, _info._quoteCurrency));
         if (address(_baseAssim) == address(0))
-            _baseAssim = (
+            _baseAssim =
                 assimilatorFactory.newAssimilator(
+                    _info._quoteCurrency,
                     _info._baseOracle,
                     _info._baseCurrency,
                     baseDec
-                )
-            );
+                );
+        require(config.isNewPairValid(_info._quoteCurrency, address(_info._quoteOracle)),"CurveFactory/quote-not-supported");
         AssimilatorV2 _quoteAssim;
-        _quoteAssim = (assimilatorFactory.getAssimilator(_info._quoteCurrency));
+        _quoteAssim = (assimilatorFactory.getAssimilator(_info._baseCurrency,_info._quoteCurrency));
         if (address(_quoteAssim) == address(0))
-            _quoteAssim = (
+            _quoteAssim = 
                 assimilatorFactory.newAssimilator(
+                    _info._quoteCurrency,
                     _info._quoteOracle,
                     _info._quoteCurrency,
                     quoteDec
-                )
-            );
+                );
 
         address[] memory _assets = new address[](10);
         uint256[] memory _assetWeights = new uint256[](2);
@@ -196,23 +194,5 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         emit NewCurve(msg.sender, curveId, address(curve));
 
         return curve;
-    }
-
-    function quoteAddress() internal view returns (address) {
-        if (USDC == address(0)) {
-            uint256 chainID;
-            assembly {
-                chainID := chainid()
-            }
-            if (chainID == 1) {
-                return 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-            } else if (chainID == 137) {
-                return 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
-            } else {
-                return address(0);
-            }
-        } else {
-            return USDC;
-        }
     }
 }

@@ -152,7 +152,11 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
         emit ProtocolFeeUpdated(protocolTreasury, protocolFee);
     }
 
-    function addNewQuoteCurrency(address _quote, uint256 _quoteDecimal, address _oracle, uint256 _oracleDecimal) external onlyOwner {
+    function isNewPairValid (address _quote, address _oracle) public view override returns (bool) {
+        return (isOracleUsed[_oracle] && isQuoteUsed[_quote]);
+    }
+
+    function addNewQuoteCurrency(address _quote, uint256 _quoteDecimal, address _oracle, uint256 _oracleDecimal) external override onlyOwner {
         uint256 id = uint256(keccak256(abi.encode(_quote, _oracle)));
         require(!isQuoteAdded[id], "quote already added");
         require(_quote.isContract(), "invalid quote");
@@ -174,7 +178,7 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
         emit NewQuoteAdded(_quote, _quoteDecimal, _oracle, _oracleDecimal);
     }
 
-    function removeQuoteCurrency(address _quote, address _oracle) external onlyOwner {
+    function removeQuoteCurrency(address _quote, address _oracle) external override onlyOwner {
         uint256 id = uint256(keccak256(abi.encode(_quote, _oracle)));
         require(isQuoteAdded[id], "quote is not added");
         delete isQuoteAdded[id];
