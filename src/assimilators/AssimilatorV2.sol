@@ -24,6 +24,8 @@ import "../lib/ABDKMath64x64.sol";
 import "../interfaces/IAssimilator.sol";
 import "../interfaces/IOracle.sol";
 
+import "forge-std/Test.sol";
+
 contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
@@ -100,8 +102,13 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         returns (uint256 amount_)
     {
         uint256 _rate = getRate();
+        console.logString("Assim, intakeNumeraire in");
+        console.logString("rate is");
+        console.log(_rate);
 
         amount_ = (_amount.mulu(10**tokenDecimals) * 10**oracleDecimals) / _rate;
+        console.logString("Assim, intakeNumeraire in, amt is");
+        console.log(amount_);
         
         token.safeTransferFrom(msg.sender, address(this), amount_);
     }

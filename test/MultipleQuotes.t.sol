@@ -56,6 +56,7 @@ contract MultipleQuotesTest is Test {
     // curves
     Curve public eurocUsdtCurve;
     Curve public eurocUsdcCurve;
+    Curve public usdcUsdtCurve;
 
     Config config;
     CurveFactoryV2 curveFactory;
@@ -96,6 +97,7 @@ contract MultipleQuotesTest is Test {
         // now deploy curves
         eurocUsdtCurve = createCurve("euroc-usdt",address(euroc),address(usdt),address(eurocOracle),address(usdtOracle));
         eurocUsdcCurve = createCurve("euroc-usdc",address(euroc),address(usdc),address(eurocOracle),address(usdcOracle));
+        usdcUsdtCurve = createCurve("usdt-usdc",address(usdc),address(usdt),address(usdcOracle),address(usdtOracle));
     }
 
     function createCurve(string memory name, address base, address quote,address baseOracle, address quoteOracle) public returns (Curve) {
@@ -126,83 +128,80 @@ contract MultipleQuotesTest is Test {
         uint256 quoteDecimals = utils.tenToPowerOf(IERC20Detailed(quote).decimals());
         decimals[quote] = quoteDecimals;
         deal(quote,address(accounts[0]), mintAmt.mul(quoteDecimals));
-        console.logString("quote minted, minted amt is ");
-        console.log(IERC20Detailed(quote).balanceOf(address(accounts[0])));
         // now approve the deployed curve
         cheats.startPrank(address(accounts[0]));
-        console.logString("1");
-        IERC20Detailed(base).approve(address(_curve), 0);
-        IERC20Detailed(base).approve(address(_curve), type(uint).max);
-        console.logString("2");
-        console.logString("quote address is ");
-        console.log(quote);
+        // IERC20Detailed(base).approve(address(_curve), 0);
+        IERC20Detailed(base).approve(address(_curve), type(uint256).max);
         // IERC20Detailed(quote).approve(address(_curve), 0);
-        // IERC20Detailed(quote).approve(address(_curve), type(uint).max);
-        console.log("allowance");
-        console.log(IERC20Detailed(quote).allowance(address(accounts[0]),address(_curve)));
         IERC20Detailed(quote).safeApprove(address(_curve), type(uint256).max);
-        console.logString("3");
         cheats.stopPrank();
-        console.logString("curve got approved");
-        console.logString("curve created");
         return _curve;
     }
 
     // test euroc-usdt curve, usdt is a quote
-    // function testEurocUsdtCurve() public {
-    //     uint256 amt = 1000000;
-    //     // mint tokens to trader
-    //     deal(address(euroc),address(accounts[1]), amt * decimals[address(euroc)]);
-    //     cheats.startPrank(address(accounts[1]));
-    //     euroc.approve(address(eurocUsdtCurve),type(uint256).max);
-    //     usdt.safeApprove(address(eurocUsdtCurve), type(uint256).max);
-    //     cheats.stopPrank();
-    //     // deposit from lp
-    //     cheats.startPrank(address(accounts[0]));
-    //     eurocUsdtCurve.deposit(1000000000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
-    //     cheats.stopPrank();
-    //     // now trade
-    //     cheats.startPrank(address(accounts[1]));
-    //     uint256 e_bal_0 = euroc.balanceOf(address(accounts[1]));
-    //     uint256 u_bal_0 = usdt.balanceOf(address(accounts[1]));
-    //     eurocUsdtCurve.originSwap(
-    //         address(euroc),
-    //         address(usdt),
-    //         e_bal_0,
-    //         0,
-    //         block.timestamp + 60
-    //     );
-    //     uint256 e_bal_1 = euroc.balanceOf(address(accounts[1]));
-    //     uint256 u_bal_1 = usdt.balanceOf(address(accounts[1]));
-    //     cheats.stopPrank();
-    //     console.logString("before swap, euroc & usdt");
-    //     console.log(e_bal_0);
-    //     console.log(u_bal_0);
-    //     console.logString("after swap, euroc & usdt");
-    //     console.log(e_bal_1);
-    //     console.log(u_bal_1);
-    //     console.logString("swap diff, euroc & usdt");
-    //     console.log(e_bal_0 - e_bal_1);
-    //     console.log(u_bal_1 - u_bal_0);
-    // }
-
-    // test euroc-usdt curve, usdt is a quote
-    function testEurocUsdcCurve() public {
+    function testEurocUsdtCurve() public {
         uint256 amt = 1000000;
         // mint tokens to trader
         deal(address(euroc),address(accounts[1]), amt * decimals[address(euroc)]);
+        cheats.startPrank(address(accounts[1]));
+        euroc.approve(address(eurocUsdtCurve),type(uint256).max);
+        usdt.safeApprove(address(eurocUsdtCurve), type(uint256).max);
+        cheats.stopPrank();
+        // deposit from lp
+        cheats.startPrank(address(accounts[0]));
+        eurocUsdtCurve.deposit(1000000000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
+        cheats.stopPrank();
+        // now trade
+        cheats.startPrank(address(accounts[1]));
+        uint256 e_bal_0 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_bal_0 = usdt.balanceOf(address(accounts[1]));
+        eurocUsdtCurve.originSwap(
+            address(euroc),
+            address(usdt),
+            e_bal_0,
+            0,
+            block.timestamp + 60
+        );
+        uint256 e_bal_1 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_bal_1 = usdt.balanceOf(address(accounts[1]));
+        cheats.stopPrank();
+        console.logString("before swap, euroc & usdt");
+        console.log(e_bal_0);
+        console.log(u_bal_0);
+        console.logString("after swap, euroc & usdt");
+        console.log(e_bal_1);
+        console.log(u_bal_1);
+        console.logString("swap diff, euroc & usdt");
+        console.log(e_bal_0 - e_bal_1);
+        console.log(u_bal_1 - u_bal_0);
+    }
+
+    // test euroc-usdt curve, usdt is a quote
+    function testEurocUsdcCurve() public {
+        uint256 amt = 10000;
+        // mint tokens to trader
+        deal(address(euroc),address(accounts[1]), amt * decimals[address(euroc)]);
+        deal(address(usdc),address(accounts[1]), amt * decimals[address(usdc)]);
         cheats.startPrank(address(accounts[1]));
         euroc.approve(address(eurocUsdcCurve),type(uint256).max);
         usdc.safeApprove(address(eurocUsdcCurve), type(uint256).max);
         cheats.stopPrank();
         // deposit from lp
         cheats.startPrank(address(accounts[0]));
-        eurocUsdcCurve.deposit(1000000000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
+        eurocUsdcCurve.deposit(100000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
+        uint256 crvEurocBal_1 = euroc.balanceOf(address(eurocUsdcCurve));
+        uint256 crvUsdcBal_1 = usdc.balanceOf(address(eurocUsdcCurve));
+        console.logString("after providing lp, euroc & usdc bals respectively");
+        console.log(crvEurocBal_1);
+        console.log(crvUsdcBal_1);
         cheats.stopPrank();
         // now trade
         cheats.startPrank(address(accounts[1]));
         uint256 e_bal_0 = euroc.balanceOf(address(accounts[1]));
         uint256 u_bal_0 = usdc.balanceOf(address(accounts[1]));
+        console.logString("before swap, user 1 euroc & usdc bals");
+        console.log(e_bal_0);
+        console.log(u_bal_0);
         eurocUsdcCurve.originSwap(
             address(euroc),
             address(usdc),
@@ -210,17 +209,70 @@ contract MultipleQuotesTest is Test {
             0,
             block.timestamp + 60
         );
+        uint256 crvEurocBal_2 = euroc.balanceOf(address(eurocUsdcCurve));
+        uint256 crvUsdcBal_2 = usdc.balanceOf(address(eurocUsdcCurve));
+        console.logString("after swap, euroc & usdc bals respectively");
+        console.log(crvEurocBal_2);
+        console.log(crvUsdcBal_2);
+
         uint256 e_bal_1 = euroc.balanceOf(address(accounts[1]));
         uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
         cheats.stopPrank();
-        console.logString("before swap, euroc & usdc");
-        console.log(e_bal_0);
-        console.log(u_bal_0);
         console.logString("after swap, euroc & usdc");
         console.log(e_bal_1);
         console.log(u_bal_1);
         console.logString("swap diff, euroc & usdc");
         console.log(e_bal_0 - e_bal_1);
         console.log(u_bal_1 - u_bal_0);
+    }
+
+    // test euroc-usdt curve, usdt is a quote
+    function testUsdcUsdtCurve() public {
+        uint256 amt = 10000;
+        // mint tokens to trader
+        deal(address(usdt),address(accounts[1]), amt * decimals[address(euroc)]);
+        deal(address(usdc),address(accounts[1]), amt * decimals[address(usdc)]);
+        cheats.startPrank(address(accounts[1]));
+        usdc.approve(address(usdcUsdtCurve),type(uint256).max);
+        usdt.safeApprove(address(usdcUsdtCurve), type(uint256).max);
+        cheats.stopPrank();
+        // deposit from lp
+        cheats.startPrank(address(accounts[0]));
+        usdcUsdtCurve.deposit(100000 * 1e18,0,0,type(uint256).max, type(uint256).max, block.timestamp + 60);
+        uint256 crvUsdtBal_1 = usdt.balanceOf(address(usdcUsdtCurve));
+        uint256 crvUsdcBal_1 = usdc.balanceOf(address(usdcUsdtCurve));
+        console.logString("after providing lp, usdt & usdc bals respectively");
+        console.log(crvUsdtBal_1);
+        console.log(crvUsdcBal_1);
+        cheats.stopPrank();
+        // now trade
+        cheats.startPrank(address(accounts[1]));
+        uint256 t_bal_0 = usdt.balanceOf(address(accounts[1]));
+        uint256 c_bal_0 = usdc.balanceOf(address(accounts[1]));
+        console.logString("before swap, user 1 usdt & usdc bals");
+        console.log(t_bal_0);
+        console.log(c_bal_0);
+        usdcUsdtCurve.originSwap(
+            address(usdt),
+            address(usdc),
+            t_bal_0,
+            0,
+            block.timestamp + 60
+        );
+        uint256 crvUsdtBal_2 = usdt.balanceOf(address(usdcUsdtCurve));
+        uint256 crvUsdcBal_2 = usdc.balanceOf(address(usdcUsdtCurve));
+        console.logString("after swap, usdt & usdc bals respectively");
+        console.log(crvUsdtBal_2);
+        console.log(crvUsdcBal_2);
+
+        uint256 t_bal_1 = usdt.balanceOf(address(accounts[1]));
+        uint256 c_bal_1 = usdc.balanceOf(address(accounts[1]));
+        cheats.stopPrank();
+        console.logString("after swap, usdt & usdc");
+        console.log(t_bal_1);
+        console.log(c_bal_1);
+        console.logString("swap diff, usdt & usdc");
+        console.log(t_bal_0 - t_bal_1);
+        console.log(c_bal_1 - c_bal_0);
     }
 }

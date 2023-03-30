@@ -12,6 +12,8 @@ import "./lib/ABDKMath64x64.sol";
 import "./CurveMath.sol";
 import "./Structs.sol";
 
+import "forge-std/Test.sol";
+
 library ProportionalLiquidity {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
@@ -29,22 +31,33 @@ library ProportionalLiquidity {
         int128 __deposit = depositData.deposits.divu(1e18);
 
         uint256 _length = curve.assets.length;
+        for(uint i = 0; i < _length; ++i){
+            console.logString("curve asset is");
+            console.log(curve.assets[i].addr);
+        }
 
         uint256[] memory deposits_ = new uint256[](_length);
 
         (int128 _oGLiq, int128[] memory _oBals) = getGrossLiquidityAndBalancesForDeposit(curve);
-
+        console.logString("pl, proportional deposit in");
+        console.logInt(_oGLiq);
         // Needed to calculate liquidity invariant
         // (int128 _oGLiqProp, int128[] memory _oBalsProp) = getGrossLiquidityAndBalances(curve);
 
         // No liquidity, oracle sets the ratio
         if (_oGLiq == 0) {
+            console.logString("pl, pd, oGLiq 0 entered");
             for (uint256 i = 0; i < _length; i++) {
                 // Variable here to avoid stack-too-deep errors
                 int128 _d = __deposit.mul(curve.weights[i]);
+                console.logString("pl, pd in for oGLiq 0");
+                console.logInt(_d);
                 deposits_[i] = Assimilators.intakeNumeraire(curve.assets[i].addr, _d.add(ONE_WEI));
+                console.logString("pl, pd in for deposits");
+                console.log(deposits_[i]);
             }
         } else {
+            console.logString("pl, pd, oGLiq 0  didn't enter");
             // We already have an existing pool ratio
             // which must be respected
             int128 _multiplier = __deposit.div(_oGLiq);

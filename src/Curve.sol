@@ -42,6 +42,8 @@ import "./interfaces/ICurveFactory.sol";
 
 import "./Structs.sol";
 
+import "forge-std/Test.sol";
+
 library Curves {
     using ABDKMath64x64 for int128;
 
@@ -671,6 +673,8 @@ contract Curve is Storage, NoDelegateCall {
             uint256 curvesMinted_,
             uint256[] memory deposits_
         ) = ProportionalLiquidity.proportionalDeposit(curve, _depositData);
+        console.logString("curve deposit in :");
+        console.log(curvesMinted_);
         return (curvesMinted_, deposits_);
     }
 

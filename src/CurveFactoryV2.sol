@@ -142,7 +142,7 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
                 );
         require(config.isNewPairValid(_info._quoteCurrency, address(_info._quoteOracle)),"CurveFactory/quote-not-supported");
         AssimilatorV2 _quoteAssim;
-        _quoteAssim = (assimilatorFactory.getAssimilator(_info._baseCurrency,_info._quoteCurrency));
+        _quoteAssim = (assimilatorFactory.getAssimilator(_info._quoteCurrency,_info._quoteCurrency));
         if (address(_quoteAssim) == address(0))
             _quoteAssim = 
                 assimilatorFactory.newAssimilator(
