@@ -87,12 +87,9 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         return config.isPoolGuarded(pool);
     }
 
-    function getPoolGuardAmount(address pool)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getPoolGuardAmount(
+        address pool
+    ) external view override returns (uint256) {
         return config.getPoolGuardAmount(pool);
     }
 
@@ -100,11 +97,10 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         return config.getPoolCap(pool);
     }
 
-    function getCurve(address _baseCurrency, address _quoteCurrency)
-        external
-        view
-        returns (address)
-    {
+    function getCurve(
+        address _baseCurrency,
+        address _quoteCurrency
+    ) external view returns (address) {
         bytes32 curveId = keccak256(abi.encode(_baseCurrency, _quoteCurrency));
         return (curves[curveId]);
     }
@@ -116,7 +112,7 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         );
         require(
             _info._baseCurrency != _info._quoteCurrency,
-            "CurveFactory/base-currency-is-usdc"
+            "CurveFactory/quote-base-currencies-same"
         );
         require(
             (_info._baseWeight + _info._quoteWeight) == 1e18,
@@ -131,26 +127,33 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         );
         if (curves[curveId] != address(0)) revert("CurveFactory/pair-exists");
         AssimilatorV2 _baseAssim;
-        _baseAssim = (assimilatorFactory.getAssimilator(_info._baseCurrency, _info._quoteCurrency));
+        _baseAssim = (
+            assimilatorFactory.getAssimilator(
+                _info._baseCurrency,
+                _info._quoteCurrency
+            )
+        );
         if (address(_baseAssim) == address(0))
-            _baseAssim =
-                assimilatorFactory.newAssimilator(
-                    _info._quoteCurrency,
-                    _info._baseOracle,
-                    _info._baseCurrency,
-                    baseDec
-                );
-        require(config.isNewPairValid(_info._quoteCurrency, address(_info._quoteOracle)),"CurveFactory/quote-not-supported");
+            _baseAssim = assimilatorFactory.newAssimilator(
+                _info._quoteCurrency,
+                _info._baseOracle,
+                _info._baseCurrency,
+                baseDec
+            );
         AssimilatorV2 _quoteAssim;
-        _quoteAssim = (assimilatorFactory.getAssimilator(_info._quoteCurrency,_info._quoteCurrency));
+        _quoteAssim = (
+            assimilatorFactory.getAssimilator(
+                _info._quoteCurrency,
+                _info._quoteCurrency
+            )
+        );
         if (address(_quoteAssim) == address(0))
-            _quoteAssim = 
-                assimilatorFactory.newAssimilator(
-                    _info._quoteCurrency,
-                    _info._quoteOracle,
-                    _info._quoteCurrency,
-                    quoteDec
-                );
+            _quoteAssim = assimilatorFactory.newAssimilator(
+                _info._quoteCurrency,
+                _info._quoteOracle,
+                _info._quoteCurrency,
+                quoteDec
+            );
 
         address[] memory _assets = new address[](10);
         uint256[] memory _assetWeights = new uint256[](2);

@@ -42,8 +42,6 @@ import "./interfaces/ICurveFactory.sol";
 
 import "./Structs.sol";
 
-import "forge-std/Test.sol";
-
 library Curves {
     using ABDKMath64x64 for int128;
 
@@ -396,8 +394,12 @@ contract Curve is Storage, NoDelegateCall {
             _;
         } else {
             _;
-            uint256 poolGuardAmt = ICurveFactory(curveFactory).getPoolGuardAmount(pool);
-            require(curve.balances[msg.sender] <= poolGuardAmt, "curve/deposit-exceeds-guard-amt");
+            uint256 poolGuardAmt = ICurveFactory(curveFactory)
+                .getPoolGuardAmount(pool);
+            require(
+                curve.balances[msg.sender] <= poolGuardAmt,
+                "curve/deposit-exceeds-guard-amt"
+            );
         }
     }
 
@@ -512,7 +514,7 @@ contract Curve is Storage, NoDelegateCall {
     function transferOwnership(address _newOwner) external onlyOwner {
         require(
             _newOwner != address(0),
-            "Curve/new-owner-cannot-be-zeroth-address"
+            "Curve/new-owner-cannot-be-zero-address"
         );
 
         emit OwnershipTransfered(owner, _newOwner);
@@ -643,13 +645,20 @@ contract Curve is Storage, NoDelegateCall {
             _targetAmount
         );
     }
- 
+
     /// @notice deposit into the pool with no slippage from the numeraire assets the pool supports
     /// @param  _deposit the full amount you want to deposit into the pool which will be divided up evenly amongst
     ///                  the numeraire assets of the pool
     /// @return ( the amount of curves you receive in return for your deposit,
     ///           the amount deposited for each numeraire)
-    function deposit(uint256 _deposit,uint256 _minQuoteAmount,uint256 _minBaseAmount,uint256 _maxQuoteAmount, uint256 _maxBaseAmount, uint256 _deadline)
+    function deposit(
+        uint256 _deposit,
+        uint256 _minQuoteAmount,
+        uint256 _minBaseAmount,
+        uint256 _maxQuoteAmount,
+        uint256 _maxBaseAmount,
+        uint256 _deadline
+    )
         external
         deadline(_deadline)
         globallyTransactable
@@ -660,8 +669,8 @@ contract Curve is Storage, NoDelegateCall {
         isDepositable(address(this), _deposit)
         returns (uint256, uint256[] memory)
     {
-        require(_deposit >0, "Curve/deposit_below_zero");
-        
+        require(_deposit > 0, "Curve/deposit_below_zero");
+
         // (curvesMinted_,  deposits_)
         DepositData memory _depositData;
         _depositData.deposits = _deposit;
@@ -673,8 +682,6 @@ contract Curve is Storage, NoDelegateCall {
             uint256 curvesMinted_,
             uint256[] memory deposits_
         ) = ProportionalLiquidity.proportionalDeposit(curve, _depositData);
-        console.logString("curve deposit in :");
-        console.log(curvesMinted_);
         return (curvesMinted_, deposits_);
     }
 
@@ -683,7 +690,9 @@ contract Curve is Storage, NoDelegateCall {
     ///                 prevailing proportions of the numeraire assets of the pool
     /// @return (the amount of curves you receive in return for your deposit,
     ///          the amount deposited for each numeraire)
-    function viewDeposit(uint256 _deposit)
+    function viewDeposit(
+        uint256 _deposit
+    )
         external
         view
         globallyTransactable
@@ -699,7 +708,10 @@ contract Curve is Storage, NoDelegateCall {
     /// @param   _curvesToBurn the full amount you want to withdraw from the pool which will be withdrawn from evenly amongst the
     ///                        numeraire assets of the pool
     /// @return withdrawals_ the amonts of numeraire assets withdrawn from the pool
-    function emergencyWithdraw(uint256 _curvesToBurn, uint256 _deadline)
+    function emergencyWithdraw(
+        uint256 _curvesToBurn,
+        uint256 _deadline
+    )
         external
         isEmergency
         deadline(_deadline)
@@ -714,7 +726,10 @@ contract Curve is Storage, NoDelegateCall {
     /// @param   _curvesToBurn the full amount you want to withdraw from the pool which will be withdrawn from evenly amongst the
     ///                        numeraire assets of the pool
     /// @return withdrawals_ the amonts of numeraire assets withdrawn from the pool
-    function withdraw(uint256 _curvesToBurn, uint256 _deadline)
+    function withdraw(
+        uint256 _curvesToBurn,
+        uint256 _deadline
+    )
         external
         deadline(_deadline)
         nonReentrant
@@ -729,7 +744,9 @@ contract Curve is Storage, NoDelegateCall {
     /// @param   _curvesToBurn the full amount you want to withdraw from the pool which will be withdrawn from evenly amongst the
     ///                        numeraire assets of the pool
     /// @return the amonnts of numeraire assets withdrawn from the pool
-    function viewWithdraw(uint256 _curvesToBurn)
+    function viewWithdraw(
+        uint256 _curvesToBurn
+    )
         external
         view
         globallyTransactable
@@ -743,11 +760,9 @@ contract Curve is Storage, NoDelegateCall {
             );
     }
 
-    function supportsInterface(bytes4 _interface)
-        public
-        pure
-        returns (bool supports_)
-    {
+    function supportsInterface(
+        bytes4 _interface
+    ) public pure returns (bool supports_) {
         supports_ =
             this.supportsInterface.selector == _interface || // erc165
             bytes4(0x7f5828d0) == _interface || // eip173
@@ -758,7 +773,10 @@ contract Curve is Storage, NoDelegateCall {
     /// @param _recipient the address of where to send the curve tokens
     /// @param _amount the amount of curve tokens to send
     /// @return success_ the success bool of the call
-    function transfer(address _recipient, uint256 _amount)
+    function transfer(
+        address _recipient,
+        uint256 _amount
+    )
         public
         nonReentrant
         noDelegateCall
@@ -791,12 +809,10 @@ contract Curve is Storage, NoDelegateCall {
     /// @param _spender the account to allow to spend from msg.sender
     /// @param _amount the amount to specify the spender can spend
     /// @return success_ the success bool of this call
-    function approve(address _spender, uint256 _amount)
-        public
-        nonReentrant
-        noDelegateCall
-        returns (bool success_)
-    {
+    function approve(
+        address _spender,
+        uint256 _amount
+    ) public nonReentrant noDelegateCall returns (bool success_) {
         success_ = Curves.approve(curve, _spender, _amount);
     }
 
@@ -867,11 +883,9 @@ contract Curve is Storage, NoDelegateCall {
     /// @notice view the curve token balance of a given account
     /// @param _account the account to view the balance of
     /// @return balance_ the curve token ballance of the given account
-    function balanceOf(address _account)
-        public
-        view
-        returns (uint256 balance_)
-    {
+    function balanceOf(
+        address _account
+    ) public view returns (uint256 balance_) {
         balance_ = curve.balances[_account];
     }
 
@@ -885,11 +899,10 @@ contract Curve is Storage, NoDelegateCall {
     /// @param _owner the address of the owner
     /// @param _spender the address of the spender
     /// @return allowance_ the amount the owner has allotted the spender
-    function allowance(address _owner, address _spender)
-        public
-        view
-        returns (uint256 allowance_)
-    {
+    function allowance(
+        address _owner,
+        address _spender
+    ) public view returns (uint256 allowance_) {
         allowance_ = curve.allowances[_owner][_spender];
     }
 
@@ -906,11 +919,9 @@ contract Curve is Storage, NoDelegateCall {
 
     /// @notice view the assimilator address for a derivative
     /// @return assimilator_ the assimilator address
-    function assimilator(address _derivative)
-        public
-        view
-        returns (address assimilator_)
-    {
+    function assimilator(
+        address _derivative
+    ) public view returns (address assimilator_) {
         assimilator_ = curve.assimilators[_derivative].addr;
     }
 }

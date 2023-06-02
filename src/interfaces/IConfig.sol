@@ -3,41 +3,35 @@
 pragma solidity ^0.8.13;
 
 interface IConfig {
-    function getGlobalFrozenState() external view  returns (bool);
+    function getGlobalFrozenState() external view returns (bool);
 
-    function getFlashableState() external view  returns (bool);
+    function getFlashableState() external view returns (bool);
 
-    function getProtocolFee() external view  returns (int128);
+    function getProtocolFee() external view returns (int128);
 
-    function getProtocolTreasury() external view  returns (address);
+    function getProtocolTreasury() external view returns (address);
 
     function setGlobalFrozen(bool) external;
 
-    function toggleGlobalGuarded () external;
+    function toggleGlobalGuarded() external;
 
-    function setPoolGuarded (address, bool) external;
+    function setPoolGuarded(address, bool) external;
 
-    function setGlobalGuardAmount (uint256) external;
+    function setGlobalGuardAmount(uint256) external;
 
-    function setPoolCap (address, uint256) external;
+    function setPoolCap(address, uint256) external;
 
-    function setPoolGuardAmount (address, uint256) external;
+    function setPoolGuardAmount(address, uint256) external;
 
-    function isPoolGuarded (address) external view returns (bool);
+    function isPoolGuarded(address) external view returns (bool);
 
-    function getPoolGuardAmount (address) external view returns (uint256);
+    function getPoolGuardAmount(address) external view returns (uint256);
 
-    function getPoolCap (address) external view returns (uint256);
-    
+    function getPoolCap(address) external view returns (uint256);
+
     function setFlashable(bool) external;
 
     function updateProtocolTreasury(address) external;
 
     function updateProtocolFee(int128) external;
-
-    function isNewPairValid(address,address) external returns (bool);
-
-    function addNewQuoteCurrency(address, uint256, address, uint256) external;
-
-    function removeQuoteCurrency(address, address) external;
 }

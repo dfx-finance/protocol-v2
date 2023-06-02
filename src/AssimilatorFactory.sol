@@ -28,8 +28,11 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
 
     address public curveFactory;
 
-    modifier onlyCurveFactoryOrOwner {
-        require(msg.sender == curveFactory || msg.sender == owner(), "unauthorized");
+    modifier onlyCurveFactoryOrOwner() {
+        require(
+            msg.sender == curveFactory || msg.sender == owner(),
+            "unauthorized"
+        );
         _;
     }
 
@@ -42,13 +45,11 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
         emit CurveFactoryUpdated(msg.sender, curveFactory);
     }
 
-    function getAssimilator(address _token, address _quote)
-        external
-        view
-        override
-        returns (AssimilatorV2)
-    {
-        bytes32 assimilatorID = keccak256(abi.encode(_token,_quote));
+    function getAssimilator(
+        address _token,
+        address _quote
+    ) external view override returns (AssimilatorV2) {
+        bytes32 assimilatorID = keccak256(abi.encode(_token, _quote));
         return assimilators[assimilatorID];
     }
 
@@ -80,8 +81,11 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
         return assimilator;
     }
 
-    function revokeAssimilator(address _token, address _quote) external onlyOwner {
-        bytes32 assimilatorID = keccak256(abi.encode(_token,_quote));
+    function revokeAssimilator(
+        address _token,
+        address _quote
+    ) external onlyOwner {
+        bytes32 assimilatorID = keccak256(abi.encode(_token, _quote));
         address _assimAddress = address(assimilators[assimilatorID]);
         assimilators[assimilatorID] = AssimilatorV2(address(0));
         emit AssimilatorRevoked(

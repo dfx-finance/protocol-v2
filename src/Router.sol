@@ -31,7 +31,7 @@ contract Router {
     address public factory;
 
     constructor(address _factory) {
-        require(_factory != address(0), "Curve/factory-cannot-be-zeroth-address");
+        require(_factory != address(0), "Curve/factory-cannot-be-zero-address");
 
         factory = _factory;
     }
@@ -49,21 +49,41 @@ contract Router {
         uint256 _originAmount
     ) external view returns (uint256 targetAmount_) {
         // If its an immediate pair then just swap directly on it
-        address curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_origin, _target)));
+        address curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_origin, _target))
+        );
         if (_origin == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_target, _origin)));
+            curve0 = CurveFactoryV2(factory).curves(
+                keccak256(abi.encode(_target, _origin))
+            );
         }
         if (curve0 != address(0)) {
-            targetAmount_ = Curve(curve0).viewOriginSwap(_origin, _target, _originAmount);
+            targetAmount_ = Curve(curve0).viewOriginSwap(
+                _origin,
+                _target,
+                _originAmount
+            );
             return targetAmount_;
         }
 
         // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_origin, _quoteCurrency)));
-        address curve1 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_target, _quoteCurrency)));
+        curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_origin, _quoteCurrency))
+        );
+        address curve1 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_target, _quoteCurrency))
+        );
         if (curve0 != address(0) && curve1 != address(0)) {
-            uint256 _quoteAmount = Curve(curve0).viewOriginSwap(_origin, _quoteCurrency, _originAmount);
-            targetAmount_ = Curve(curve1).viewOriginSwap(_quoteCurrency, _target, _quoteAmount);
+            uint256 _quoteAmount = Curve(curve0).viewOriginSwap(
+                _origin,
+                _quoteCurrency,
+                _originAmount
+            );
+            targetAmount_ = Curve(curve1).viewOriginSwap(
+                _quoteCurrency,
+                _target,
+                _quoteAmount
+            );
             return targetAmount_;
         }
 
@@ -86,26 +106,50 @@ contract Router {
         uint256 _minTargetAmount,
         uint256 _deadline
     ) public returns (uint256 targetAmount_) {
-        IERC20(_origin).safeTransferFrom(msg.sender, address(this), _originAmount);
+        IERC20(_origin).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _originAmount
+        );
 
         // If its an immediate pair then just swap directly on it
-        address curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_origin, _target)));
+        address curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_origin, _target))
+        );
         if (_origin == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_target, _origin)));
+            curve0 = CurveFactoryV2(factory).curves(
+                keccak256(abi.encode(_target, _origin))
+            );
         }
         if (curve0 != address(0)) {
             IERC20(_origin).safeApprove(curve0, _originAmount);
-            targetAmount_ = Curve(curve0).originSwap(_origin, _target, _originAmount, _minTargetAmount, _deadline);
+            targetAmount_ = Curve(curve0).originSwap(
+                _origin,
+                _target,
+                _originAmount,
+                _minTargetAmount,
+                _deadline
+            );
             IERC20(_target).safeTransfer(msg.sender, targetAmount_);
             return targetAmount_;
         }
 
         // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_origin, _quoteCurrency)));
-        address curve1 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_target, _quoteCurrency)));
+        curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_origin, _quoteCurrency))
+        );
+        address curve1 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_target, _quoteCurrency))
+        );
         if (curve0 != address(0) && curve1 != address(0)) {
             IERC20(_origin).safeApprove(curve0, _originAmount);
-            uint256 _quoteAmount = Curve(curve0).originSwap(_origin, _quoteCurrency, _originAmount, 0, _deadline);
+            uint256 _quoteAmount = Curve(curve0).originSwap(
+                _origin,
+                _quoteCurrency,
+                _originAmount,
+                0,
+                _deadline
+            );
 
             IERC20(_quoteCurrency).safeApprove(curve1, _quoteAmount);
             targetAmount_ = Curve(curve1).originSwap(
@@ -135,22 +179,42 @@ contract Router {
         uint256 _targetAmount
     ) public view returns (uint256 originAmount_) {
         // If its an immediate pair then just swap directly on it
-        address curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_origin, _target)));
+        address curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_origin, _target))
+        );
         if (_origin == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_target, _origin)));
+            curve0 = CurveFactoryV2(factory).curves(
+                keccak256(abi.encode(_target, _origin))
+            );
         }
 
         if (curve0 != address(0)) {
-            originAmount_ = Curve(curve0).viewTargetSwap(_origin, _target, _targetAmount);
+            originAmount_ = Curve(curve0).viewTargetSwap(
+                _origin,
+                _target,
+                _targetAmount
+            );
             return originAmount_;
         }
 
         // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_target, _quoteCurrency)));
-        address curve1 = CurveFactoryV2(factory).curves(keccak256(abi.encode(_origin, _quoteCurrency)));
+        curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_target, _quoteCurrency))
+        );
+        address curve1 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_origin, _quoteCurrency))
+        );
         if (curve0 != address(0) && curve1 != address(0)) {
-            uint256 _quoteAmount = Curve(curve0).viewTargetSwap(_quoteCurrency, _target, _targetAmount);
-            originAmount_ = Curve(curve1).viewTargetSwap(_origin, _quoteCurrency, _quoteAmount);
+            uint256 _quoteAmount = Curve(curve0).viewTargetSwap(
+                _quoteCurrency,
+                _target,
+                _targetAmount
+            );
+            originAmount_ = Curve(curve1).viewTargetSwap(
+                _origin,
+                _quoteCurrency,
+                _quoteAmount
+            );
             return originAmount_;
         }
 

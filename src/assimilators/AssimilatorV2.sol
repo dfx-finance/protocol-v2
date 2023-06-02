@@ -24,8 +24,6 @@ import "../lib/ABDKMath64x64.sol";
 import "../interfaces/IAssimilator.sol";
 import "../interfaces/IOracle.sol";
 
-import "forge-std/Test.sol";
-
 contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
@@ -34,6 +32,9 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable quote;
+
+    address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address constant WETH_ORACLE = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
 
     IOracle public immutable oracle;
     IERC20 public immutable token;
@@ -57,59 +58,52 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
 
     function getRate() public view override returns (uint256) {
         (, int256 price, , , ) = oracle.latestRoundData();
-        require(price >= 0, "invalid price oracle" );
+        require(price >= 0, "invalid price oracle");
         return uint256(price);
     }
 
     // takes raw eurs amount, transfers it in, calculates corresponding numeraire amount and returns it
-    function intakeRawAndGetBalance(uint256 _amount)
-        external
-        override
-        returns (int128 amount_, int128 balance_)
-    {
+    function intakeRawAndGetBalance(
+        uint256 _amount
+    ) external override returns (int128 amount_, int128 balance_) {
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256 _balance = token.balanceOf(address(this));
 
         uint256 _rate = getRate();
-        
-        balance_ = ((_balance * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
 
-        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(
-            10**tokenDecimals
+        balance_ = ((_balance * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
+        );
+
+        amount_ = ((_amount * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
         );
     }
 
     // takes raw eurs amount, transfers it in, calculates corresponding numeraire amount and returns it
-    function intakeRaw(uint256 _amount)
-        external
-        override
-        returns (int128 amount_)
-    {
+    function intakeRaw(
+        uint256 _amount
+    ) external override returns (int128 amount_) {
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256 _rate = getRate();
 
-        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(
-            10**tokenDecimals
+        amount_ = ((_amount * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
         );
     }
 
     // takes a numeraire amount, calculates the raw amount of eurs, transfers it in and returns the corresponding raw amount
-    function intakeNumeraire(int128 _amount)
-        external
-        override
-        returns (uint256 amount_)
-    {
+    function intakeNumeraire(
+        int128 _amount
+    ) external override returns (uint256 amount_) {
         uint256 _rate = getRate();
-        console.logString("Assim, intakeNumeraire in");
-        console.logString("rate is");
-        console.log(_rate);
 
-        amount_ = (_amount.mulu(10**tokenDecimals) * 10**oracleDecimals) / _rate;
-        console.logString("Assim, intakeNumeraire in, amt is");
-        console.log(amount_);
-        
+        amount_ =
+            (_amount.mulu(10 ** tokenDecimals) * 10 ** oracleDecimals) /
+            _rate;
+
         token.safeTransferFrom(msg.sender, address(this), amount_);
     }
 
@@ -133,72 +127,80 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         uint256 _quoteBal = quote.balanceOf(_addr).mul(1e18).div(_quoteWeight);
 
         // Rate is in 1e6
-        uint256 _rate = _quoteBal.mul(10**tokenDecimals).div(_tokenBal);
+        uint256 _rate = _quoteBal.mul(10 ** tokenDecimals).div(_tokenBal);
 
-        amount_ = (_amount.mulu(10**tokenDecimals) * 1e6) / _rate;
-        
+        amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
+
         if (address(token) == address(quote)) {
-            require(amount_ >= _minQuoteAmount && amount_ <= _maxQuoteAmount, "Assimilator/LP Ratio imbalanced!");
+            require(
+                amount_ >= _minQuoteAmount && amount_ <= _maxQuoteAmount,
+                "Assimilator/LP Ratio imbalanced!"
+            );
         } else {
-            require(amount_ >= _minBaseAmount && amount_ <= _maxBaseAmount, "Assimilator/LP Ratio imbalanced!");
+            require(
+                amount_ >= _minBaseAmount && amount_ <= _maxBaseAmount,
+                "Assimilator/LP Ratio imbalanced!"
+            );
         }
         token.safeTransferFrom(msg.sender, address(this), amount_);
     }
 
     // takes a raw amount of eurs and transfers it out, returns numeraire value of the raw amount
-    function outputRawAndGetBalance(address _dst, uint256 _amount) external override returns (int128 amount_, int128 balance_){
+    function outputRawAndGetBalance(
+        address _dst,
+        uint256 _amount
+    ) external override returns (int128 amount_, int128 balance_) {
         uint256 _rate = getRate();
-            
+
         token.safeTransfer(_dst, _amount);
 
         uint256 _balance = token.balanceOf(address(this));
 
-        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
+        amount_ = ((_amount * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
+        );
 
-        balance_ = ((_balance * _rate) / 10**oracleDecimals).divu(
-            10**tokenDecimals
+        balance_ = ((_balance * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
         );
     }
 
     // takes a raw amount of eurs and transfers it out, returns numeraire value of the raw amount
-    function outputRaw(address _dst, uint256 _amount)
-        external
-        override
-        returns (int128 amount_)
-    {
+    function outputRaw(
+        address _dst,
+        uint256 _amount
+    ) external override returns (int128 amount_) {
         uint256 _rate = getRate();
 
         token.safeTransfer(_dst, _amount);
 
-        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(10**tokenDecimals);
+        amount_ = ((_amount * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
+        );
     }
 
     // takes a numeraire value of eurs, figures out the raw amount, transfers raw amount out, and returns raw amount
-    function outputNumeraire(address _dst, int128 _amount)
-        external
-        override
-        returns (uint256 amount_)
-    {
+    function outputNumeraire(
+        address _dst,
+        int128 _amount
+    ) external override returns (uint256 amount_) {
         uint256 _rate = getRate();
 
         amount_ =
-            (_amount.mulu(10**tokenDecimals) * 10**oracleDecimals) /
+            (_amount.mulu(10 ** tokenDecimals) * 10 ** oracleDecimals) /
             _rate;
 
         token.safeTransfer(_dst, amount_);
     }
 
     // takes a numeraire amount and returns the raw amount
-    function viewRawAmount(int128 _amount)
-        external
-        view
-        override
-        returns (uint256 amount_)
-    {
+    function viewRawAmount(
+        int128 _amount
+    ) external view override returns (uint256 amount_) {
         uint256 _rate = getRate();
 
         amount_ =
-            (_amount.mulu(10**tokenDecimals) * 10**oracleDecimals) /
+            (_amount.mulu(10 ** tokenDecimals) * 10 ** oracleDecimals) /
             _rate;
     }
 
@@ -219,60 +221,52 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         uint256 _quoteBal = quote.balanceOf(_addr).mul(1e18).div(_quoteWeight);
 
         // Rate is in 1e6
-        uint256 _rate = _quoteBal.mul(10**tokenDecimals).div(_tokenBal);
+        uint256 _rate = _quoteBal.mul(10 ** tokenDecimals).div(_tokenBal);
 
-        amount_ = (_amount.mulu(10**tokenDecimals) * 1e6) / _rate;
+        amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
     }
 
     // takes a raw amount and returns the numeraire amount
-    function viewNumeraireAmount(uint256 _amount)
-        external
-        view
-        override
-        returns (int128 amount_)
-    {
+    function viewNumeraireAmount(
+        uint256 _amount
+    ) external view override returns (int128 amount_) {
         uint256 _rate = getRate();
 
-        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(
-            10**tokenDecimals
+        amount_ = ((_amount * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
         );
     }
 
     // views the numeraire value of the current balance of the reserve, in this case eurs
-    function viewNumeraireBalance(address _addr)
-        external
-        view
-        override
-        returns (int128 balance_)
-    {
+    function viewNumeraireBalance(
+        address _addr
+    ) external view override returns (int128 balance_) {
         uint256 _rate = getRate();
 
         uint256 _balance = token.balanceOf(_addr);
 
         if (_balance <= 0) return ABDKMath64x64.fromUInt(0);
 
-        balance_ = ((_balance * _rate) / 10**oracleDecimals).divu(
-            10**tokenDecimals
+        balance_ = ((_balance * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
         );
     }
 
     // views the numeraire value of the current balance of the reserve, in this case eurs
-    function viewNumeraireAmountAndBalance(address _addr, uint256 _amount)
-        external
-        view
-        override
-        returns (int128 amount_, int128 balance_)
-    {
+    function viewNumeraireAmountAndBalance(
+        address _addr,
+        uint256 _amount
+    ) external view override returns (int128 amount_, int128 balance_) {
         uint256 _rate = getRate();
 
-        amount_ = ((_amount * _rate) / 10**oracleDecimals).divu(
-            10**tokenDecimals
+        amount_ = ((_amount * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
         );
 
         uint256 _balance = token.balanceOf(_addr);
 
-        balance_ = ((_balance * _rate) / 10**oracleDecimals).divu(
-            10**tokenDecimals
+        balance_ = ((_balance * _rate) / 10 ** oracleDecimals).divu(
+            10 ** tokenDecimals
         );
     }
 
@@ -301,8 +295,8 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     function transferFee(int128 _amount, address _treasury) external override {
         uint256 _rate = getRate();
         if (_amount < 0) _amount = -(_amount);
-        uint256 amount = (_amount.mulu(10**tokenDecimals) *
-            10**oracleDecimals) / _rate;
+        uint256 amount = (_amount.mulu(10 ** tokenDecimals) *
+            10 ** oracleDecimals) / _rate;
         token.safeTransfer(_treasury, amount);
     }
 }
