@@ -17,6 +17,9 @@ pragma solidity ^0.8.13;
 
 import "./CurveFactoryV2.sol";
 import "./Curve.sol";
+import "./interfaces/IWeth.sol";
+import "./interfaces/ICurveFactory.sol";
+import "./interfaces/IWeth.sol";
 
 import "../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 
@@ -29,11 +32,12 @@ contract Router {
     using SafeERC20 for IERC20;
 
     address public factory;
+    address private immutable _wETH;
 
     constructor(address _factory) {
         require(_factory != address(0), "Curve/factory-cannot-be-zero-address");
-
         factory = _factory;
+        _wETH = ICurveFactory(factory).assimilatorFactory().wETH();
     }
 
     /// @notice view how much target amount a fixed origin amount will swap for
@@ -160,6 +164,140 @@ contract Router {
                 _deadline
             );
             IERC20(_target).safeTransfer(msg.sender, targetAmount_);
+            return targetAmount_;
+        }
+
+        revert("Router/No-path");
+    }
+
+    // swap from ETH to ERC20
+    function originSwapFromETH(
+        address _quoteCurrency,
+        address _target,
+        uint256 _originAmount,
+        uint256 _minTargetAmount,
+        uint256 _deadline
+    ) public payable returns (uint256 targetAmount_) {
+        IWETH(_wETH).deposit{value: _originAmount}();
+
+        // If its an immediate pair then just swap directly on it
+        address curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_wETH, _target))
+        );
+        if (_wETH == _quoteCurrency) {
+            curve0 = CurveFactoryV2(factory).curves(
+                keccak256(abi.encode(_target, _wETH))
+            );
+        }
+        if (curve0 != address(0)) {
+            IERC20(_wETH).safeApprove(curve0, _originAmount);
+            targetAmount_ = Curve(curve0).originSwap(
+                _wETH,
+                _target,
+                _originAmount,
+                _minTargetAmount,
+                _deadline
+            );
+            IERC20(_target).safeTransfer(msg.sender, targetAmount_);
+            return targetAmount_;
+        }
+
+        // Otherwise go through the quote currency
+        curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_wETH, _quoteCurrency))
+        );
+        address curve1 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_target, _quoteCurrency))
+        );
+        if (curve0 != address(0) && curve1 != address(0)) {
+            IERC20(_wETH).safeApprove(curve0, _originAmount);
+            uint256 _quoteAmount = Curve(curve0).originSwap(
+                _wETH,
+                _quoteCurrency,
+                _originAmount,
+                0,
+                _deadline
+            );
+
+            IERC20(_quoteCurrency).safeApprove(curve1, _quoteAmount);
+            targetAmount_ = Curve(curve1).originSwap(
+                _quoteCurrency,
+                _target,
+                _quoteAmount,
+                _minTargetAmount,
+                _deadline
+            );
+            IERC20(_target).safeTransfer(msg.sender, targetAmount_);
+            return targetAmount_;
+        }
+
+        revert("Router/No-path");
+    }
+
+    // swap to ETH from ERC20
+    function originSwapToETH(
+        address _quoteCurrency,
+        address _origin,
+        uint256 _originAmount,
+        uint256 _minTargetAmount,
+        uint256 _deadline
+    ) public returns (uint256 targetAmount_) {
+        IERC20(_origin).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _originAmount
+        );
+
+        // If its an immediate pair then just swap directly on it
+        address curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_origin, _wETH))
+        );
+        if (_origin == _quoteCurrency) {
+            curve0 = CurveFactoryV2(factory).curves(
+                keccak256(abi.encode(_wETH, _origin))
+            );
+        }
+        if (curve0 != address(0)) {
+            IERC20(_origin).safeApprove(curve0, _originAmount);
+            targetAmount_ = Curve(curve0).originSwap(
+                _origin,
+                _wETH,
+                _originAmount,
+                _minTargetAmount,
+                _deadline
+            );
+            IWETH(_wETH).withdraw(targetAmount_);
+            IERC20(_wETH).safeTransfer(msg.sender, targetAmount_);
+            return targetAmount_;
+        }
+
+        // Otherwise go through the quote currency
+        curve0 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_origin, _quoteCurrency))
+        );
+        address curve1 = CurveFactoryV2(factory).curves(
+            keccak256(abi.encode(_wETH, _quoteCurrency))
+        );
+        if (curve0 != address(0) && curve1 != address(0)) {
+            IERC20(_origin).safeApprove(curve0, _originAmount);
+            uint256 _quoteAmount = Curve(curve0).originSwap(
+                _origin,
+                _quoteCurrency,
+                _originAmount,
+                0,
+                _deadline
+            );
+
+            IERC20(_quoteCurrency).safeApprove(curve1, _quoteAmount);
+            targetAmount_ = Curve(curve1).originSwap(
+                _quoteCurrency,
+                _wETH,
+                _quoteAmount,
+                _minTargetAmount,
+                _deadline
+            );
+            IWETH(_wETH).withdraw(targetAmount_);
+            IERC20(_wETH).safeTransfer(msg.sender, targetAmount_);
             return targetAmount_;
         }
 

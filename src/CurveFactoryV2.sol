@@ -122,10 +122,20 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         uint256 quoteDec = IERC20Detailed(_info._quoteCurrency).decimals();
         uint256 baseDec = IERC20Detailed(_info._baseCurrency).decimals();
 
-        bytes32 curveId = keccak256(
-            abi.encode(_info._baseCurrency, _info._quoteCurrency)
+        // bytes32 curveId = keccak256(
+        //     abi.encode(_info._baseCurrency, _info._quoteCurrency)
+        // );
+        // bytes32 curveIdReversed = keccak256(
+        //     abi.encode(_info._quoteCurrency, _info._baseCurrency)
+        // );
+        CurveIDPair memory idPair = generateCurveID(
+            _info._baseCurrency,
+            _info._quoteCurrency
         );
-        if (curves[curveId] != address(0)) revert("CurveFactory/pair-exists");
+        if (
+            curves[idPair.curveId] != address(0) ||
+            curves[idPair.curveIdReversed] != address(0)
+        ) revert("CurveFactory/pair-exists");
         AssimilatorV2 _baseAssim;
         _baseAssim = (
             assimilatorFactory.getAssimilator(
@@ -192,10 +202,21 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
             _info._lambda
         );
         curve.transferOwnership(getProtocolTreasury());
-        curves[curveId] = address(curve);
+        curves[idPair.curveId] = address(curve);
+        curves[idPair.curveIdReversed] = address(curve);
 
-        emit NewCurve(msg.sender, curveId, address(curve));
+        emit NewCurve(msg.sender, idPair.curveId, address(curve));
 
         return curve;
+    }
+
+    function generateCurveID(
+        address _base,
+        address _quote
+    ) private pure returns (CurveIDPair memory) {
+        CurveIDPair memory pair;
+        pair.curveId = keccak256(abi.encode(_base, _quote));
+        pair.curveIdReversed = keccak256(abi.encode(_quote, _base));
+        return pair;
     }
 }

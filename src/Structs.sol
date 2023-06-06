@@ -63,3 +63,8 @@ struct IntakeNumLpRatioInfo {
     uint256 maxQuote;
     int128 amount;
 }
+
+struct CurveIDPair {
+    bytes32 curveId;
+    bytes32 curveIdReversed;
+}

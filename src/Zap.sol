@@ -45,54 +45,54 @@ contract Zap {
 
     constructor() {}
 
-    /// @notice Zaps from a quote token (non-USDC) into the LP pool
-    /// @param _curve The address of the curve
-    /// @param _zapAmount The amount to zap, denominated in the ERC20's decimal placing
-    /// @param _deadline Deadline for this zap to be completed by
-    /// @param _minLPAmount Min LP amount to get
-    /// @return uint256 - The amount of LP tokens received
-    function zapFromBase(
-        address _curve,
-        uint256 _zapAmount,
-        uint256 _deadline,
-        uint256 _minLPAmount
-    ) public returns (uint256) {
-        return zap(_curve, _zapAmount, _deadline, _minLPAmount, true);
-    }
+    // /// @notice Zaps from a quote token (non-USDC) into the LP pool
+    // /// @param _curve The address of the curve
+    // /// @param _zapAmount The amount to zap, denominated in the ERC20's decimal placing
+    // /// @param _deadline Deadline for this zap to be completed by
+    // /// @param _minLPAmount Min LP amount to get
+    // /// @return uint256 - The amount of LP tokens received
+    // function zapFromBase(
+    //     address _curve,
+    //     uint256 _zapAmount,
+    //     uint256 _deadline,
+    //     uint256 _minLPAmount
+    // ) public returns (uint256) {
+    //     return zap(_curve, _zapAmount, _deadline, _minLPAmount, true);
+    // }
 
-    /// @notice Zaps from a quote token (USDC) into the LP pool
-    /// @param _curve The address of the curve
-    /// @param _zapAmount The amount to zap, denominated in the ERC20's decimal placing
-    /// @param _deadline Deadline for this zap to be completed by
-    /// @param _minLPAmount Min LP amount to get
-    /// @return uint256 - The amount of LP tokens received
-    function zapFromQuote(
-        address _curve,
-        uint256 _zapAmount,
-        uint256 _deadline,
-        uint256 _minLPAmount
-    ) public returns (uint256) {
-        return zap(_curve, _zapAmount, _deadline, _minLPAmount, false);
-    }
+    // /// @notice Zaps from a quote token (USDC) into the LP pool
+    // /// @param _curve The address of the curve
+    // /// @param _zapAmount The amount to zap, denominated in the ERC20's decimal placing
+    // /// @param _deadline Deadline for this zap to be completed by
+    // /// @param _minLPAmount Min LP amount to get
+    // /// @return uint256 - The amount of LP tokens received
+    // function zapFromQuote(
+    //     address _curve,
+    //     uint256 _zapAmount,
+    //     uint256 _deadline,
+    //     uint256 _minLPAmount
+    // ) public returns (uint256) {
+    //     return zap(_curve, _zapAmount, _deadline, _minLPAmount, false);
+    // }
 
-    // unzap
-    function upzapFromBase(
-        address _curve,
-        uint256 _lpAmount,
-        uint256 _minTokenAmount,
-        uint256 _deadline
-    ) public returns (uint256) {
-        return unzap(_curve, _lpAmount, _deadline, _minTokenAmount, true);
-    }
+    // // unzap
+    // function upzapFromBase(
+    //     address _curve,
+    //     uint256 _lpAmount,
+    //     uint256 _minTokenAmount,
+    //     uint256 _deadline
+    // ) public returns (uint256) {
+    //     return unzap(_curve, _lpAmount, _deadline, _minTokenAmount, true);
+    // }
 
-    function upzapFromQuote(
-        address _curve,
-        uint256 _lpAmount,
-        uint256 _minTokenAmount,
-        uint256 _deadline
-    ) public returns (uint256) {
-        return unzap(_curve, _lpAmount, _deadline, _minTokenAmount, false);
-    }
+    // function upzapFromQuote(
+    //     address _curve,
+    //     uint256 _lpAmount,
+    //     uint256 _minTokenAmount,
+    //     uint256 _deadline
+    // ) public returns (uint256) {
+    //     return unzap(_curve, _lpAmount, _deadline, _minTokenAmount, false);
+    // }
 
     function unzap(
         address _curve,
@@ -105,7 +105,7 @@ contract Zap {
         address _quote = Curve(_curve).numeraires(1);
         IERC20 quote = IERC20(_quote);
         require(_token == _base || _token == _quote, "zap/token-not-supported");
-        bool isFromBase = token == _base ? true : false;
+        bool isFromBase = _token == _base ? true : false;
         IERC20(_curve).safeTransferFrom(msg.sender, address(this), _lpAmount);
         Curve(_curve).withdraw(_lpAmount, _deadline);
         address base = Curve(_curve).reserves(0);
@@ -153,7 +153,6 @@ contract Zap {
     /// @param _zapAmount The amount to zap, denominated in the ERC20's decimal placing
     /// @param _deadline Deadline for this zap to be completed by
     /// @param _minLPAmount Min LP amount to get
-    /// @param isFromBase Is the zap originating from the base? (if base, then not USDC)
     /// @return uint256 - The amount of LP tokens received
     function zap(
         address _curve,
@@ -166,7 +165,7 @@ contract Zap {
         address _quote = Curve(_curve).numeraires(1);
         IERC20 quote = IERC20(_quote);
         require(_token == _base || _token == _quote, "zap/token-not-supported");
-        bool isFromBase = token == _base ? true : false;
+        bool isFromBase = _token == _base ? true : false;
         (address base, uint256 swapAmount) = calcSwapAmountForZap(
             _curve,
             _zapAmount,

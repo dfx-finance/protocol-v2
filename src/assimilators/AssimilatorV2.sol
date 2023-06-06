@@ -23,6 +23,7 @@ import "../../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol"
 import "../lib/ABDKMath64x64.sol";
 import "../interfaces/IAssimilator.sol";
 import "../interfaces/IOracle.sol";
+import "../interfaces/IERC20Detailed.sol";
 
 contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using ABDKMath64x64 for int128;
@@ -31,7 +32,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable quote;
+    IERC20Detailed public immutable pairToken;
 
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address constant WETH_ORACLE = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
@@ -40,10 +41,11 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     IERC20 public immutable token;
     uint256 public immutable oracleDecimals;
     uint256 public immutable tokenDecimals;
+    uint256 public immutable pairTokenDecimals;
 
     // solhint-disable-next-line
     constructor(
-        address _quote,
+        address _pairToken,
         IOracle _oracle,
         address _token,
         uint256 _tokenDecimals,
@@ -53,7 +55,8 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         token = IERC20(_token);
         oracleDecimals = _oracleDecimals;
         tokenDecimals = _tokenDecimals;
-        quote = IERC20(_quote);
+        pairToken = IERC20Detailed(_pairToken);
+        pairTokenDecimals = pairToken.decimals();
     }
 
     function getRate() public view override returns (uint256) {
@@ -112,9 +115,9 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         uint256 _baseWeight,
         uint256 _minBaseAmount,
         uint256 _maxBaseAmount,
-        uint256 _quoteWeight,
-        uint256 _minQuoteAmount,
-        uint256 _maxQuoteAmount,
+        uint256 _pairTokenWeight,
+        uint256 _minpairTokenAmount,
+        uint256 _maxpairTokenAmount,
         address _addr,
         int128 _amount
     ) external override returns (uint256 amount_) {
@@ -124,16 +127,23 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
 
         _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
 
-        uint256 _quoteBal = quote.balanceOf(_addr).mul(1e18).div(_quoteWeight);
+        uint256 _pairTokenBal = pairToken.balanceOf(_addr).mul(1e18).div(
+            _pairTokenWeight
+        );
 
         // Rate is in 1e6
-        uint256 _rate = _quoteBal.mul(10 ** tokenDecimals).div(_tokenBal);
+        uint256 _rate = _pairTokenBal.mul(10 ** tokenDecimals).div(_tokenBal);
 
-        amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
+        // amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
 
-        if (address(token) == address(quote)) {
+        amount_ =
+            (_amount.mulu(10 ** tokenDecimals) * 10 ** pairTokenDecimals) /
+            _rate;
+
+        if (address(token) == address(pairToken)) {
             require(
-                amount_ >= _minQuoteAmount && amount_ <= _maxQuoteAmount,
+                amount_ >= _minpairTokenAmount &&
+                    amount_ <= _maxpairTokenAmount,
                 "Assimilator/LP Ratio imbalanced!"
             );
         } else {
@@ -206,7 +216,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
 
     function viewRawAmountLPRatio(
         uint256 _baseWeight,
-        uint256 _quoteWeight,
+        uint256 _pairTokenWeight,
         address _addr,
         int128 _amount
     ) external view override returns (uint256 amount_) {
@@ -218,12 +228,18 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
 
         // 1e6
-        uint256 _quoteBal = quote.balanceOf(_addr).mul(1e18).div(_quoteWeight);
+        uint256 _pairTokenBal = pairToken.balanceOf(_addr).mul(1e18).div(
+            _pairTokenWeight
+        );
 
         // Rate is in 1e6
-        uint256 _rate = _quoteBal.mul(10 ** tokenDecimals).div(_tokenBal);
+        uint256 _rate = _pairTokenBal.mul(10 ** tokenDecimals).div(_tokenBal);
 
-        amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
+        // amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
+
+        amount_ =
+            (_amount.mulu(10 ** tokenDecimals) * 10 ** pairTokenDecimals) /
+            _rate;
     }
 
     // takes a raw amount and returns the numeraire amount
@@ -275,17 +291,19 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     // token ratio. This is in here to prevent LPs from losing out on future oracle price updates
     function viewNumeraireBalanceLPRatio(
         uint256 _baseWeight,
-        uint256 _quoteWeight,
+        uint256 _pairTokenWeight,
         address _addr
     ) external view override returns (int128 balance_) {
         uint256 _tokenBal = token.balanceOf(_addr);
 
         if (_tokenBal <= 0) return ABDKMath64x64.fromUInt(0);
 
-        uint256 _quoteBal = quote.balanceOf(_addr).mul(1e18).div(_quoteWeight);
+        uint256 _pairTokenBal = pairToken.balanceOf(_addr).mul(1e18).div(
+            _pairTokenWeight
+        );
 
         // Rate is in 1e6
-        uint256 _rate = _quoteBal.mul(1e18).div(
+        uint256 _rate = _pairTokenBal.mul(1e18).div(
             _tokenBal.mul(1e18).div(_baseWeight)
         );
 

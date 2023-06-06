@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./assimilators/AssimilatorV2.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
+
+import "./assimilators/AssimilatorV2.sol";
 import "./interfaces/IAssimilatorFactory.sol";
 import "./interfaces/IOracle.sol";
 
 contract AssimilatorFactory is IAssimilatorFactory, Ownable {
+    using Address for address;
+
     event NewAssimilator(
         address indexed caller,
         bytes32 indexed id,
@@ -27,6 +31,8 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
     mapping(bytes32 => AssimilatorV2) public assimilators;
 
     address public curveFactory;
+    address public immutable wETH;
+    address public immutable wETHOracle;
 
     modifier onlyCurveFactoryOrOwner() {
         require(
@@ -34,6 +40,16 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
             "unauthorized"
         );
         _;
+    }
+
+    constructor(address _wETH, address _wEthOracle) {
+        require(_wETH.isContract(), "AssimFactory/invalid wETH Contract");
+        require(
+            _wEthOracle.isContract(),
+            "AssimFactory/invalid wETH Oracle Contract"
+        );
+        wETH = _wETH;
+        wETHOracle = _wEthOracle;
     }
 
     function setCurveFactory(address _curveFactory) external onlyOwner {
@@ -61,7 +77,7 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
     ) external override onlyCurveFactoryOrOwner returns (AssimilatorV2) {
         bytes32 assimilatorID = keccak256(abi.encode(_token, _quote));
         if (address(assimilators[assimilatorID]) != address(0))
-            revert("AssimilatorFactory/oracle-stablecoin-pair-already-exists");
+            revert("AssimilatorFactory/assimilator-already-exists");
         AssimilatorV2 assimilator = new AssimilatorV2(
             _quote,
             _oracle,

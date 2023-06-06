@@ -17,8 +17,11 @@ pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IFlashCallback.sol";
+import "./interfaces/IWeth.sol";
+import "./interfaces/IAssimilatorFactory.sol";
 
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import "./lib/ABDKMath64x64.sol";
 
@@ -264,6 +267,7 @@ contract Curve is Storage, NoDelegateCall {
     using SafeERC20 for IERC20;
 
     address private curveFactory;
+    address private immutable wETH;
 
     event Approval(
         address indexed _owner,
@@ -416,6 +420,7 @@ contract Curve is Storage, NoDelegateCall {
         symbol = _symbol;
         curveFactory = _factory;
         emit OwnershipTransfered(address(0), msg.sender);
+        wETH = ICurveFactory(_factory).assimilatorFactory().wETH();
 
         Orchestrator.initialize(
             curve,
@@ -682,6 +687,63 @@ contract Curve is Storage, NoDelegateCall {
             uint256 curvesMinted_,
             uint256[] memory deposits_
         ) = ProportionalLiquidity.proportionalDeposit(curve, _depositData);
+        return (curvesMinted_, deposits_);
+    }
+
+    // deposit in ETH
+    function depositETH(
+        uint256 _deposit,
+        uint256 _minQuoteAmount,
+        uint256 _minBaseAmount,
+        uint256 _maxQuoteAmount,
+        uint256 _maxBaseAmount,
+        uint256 _deadline
+    )
+        external
+        payable
+        deadline(_deadline)
+        globallyTransactable
+        transactable
+        nonReentrant
+        noDelegateCall
+        isNotEmergency
+        isDepositable(address(this), _deposit)
+        returns (uint256, uint256[] memory)
+    {
+        require(_deposit > 0, "Curve/deposit_below_zero");
+
+        // (curvesMinted_,  deposits_)
+        IWETH(wETH).deposit{value: msg.value}();
+        IERC20(wETH).safeTransferFrom(address(this), msg.sender, msg.value);
+        DepositData memory _depositData;
+        _depositData.deposits = _deposit;
+        _depositData.minQuote = _minQuoteAmount;
+        _depositData.minBase = _minBaseAmount;
+        _depositData.maxQuote = _maxQuoteAmount;
+        _depositData.maxBase = _maxBaseAmount;
+        (
+            uint256 curvesMinted_,
+            uint256[] memory deposits_
+        ) = ProportionalLiquidity.proportionalDeposit(curve, _depositData);
+        uint256 remainder = 0;
+        if (curve.assets[0].addr == wETH) {
+            remainder = msg.value - deposits_[0];
+        } else if (curve.assets[1].addr == wETH) {
+            remainder = msg.value - deposits_[1];
+        } else {
+            revert();
+        }
+        // now need to determine which is wETH
+        if (remainder > 0) {
+            IERC20(wETH).safeTransferFrom(
+                msg.sender,
+                address(this),
+                msg.value - deposits_[0]
+            );
+            IWETH(wETH).withdraw(remainder);
+            (bool success, ) = msg.sender.call{value: remainder}("");
+            require(success, "Curve/eth transfer failed");
+        }
         return (curvesMinted_, deposits_);
     }
 
