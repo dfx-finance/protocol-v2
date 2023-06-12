@@ -3,16 +3,14 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
+import "../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "./Structs.sol";
 import "./Assimilators.sol";
 import "./Storage.sol";
 import "./CurveMath.sol";
 import "./lib/UnsafeMath64x64.sol";
 import "./lib/ABDKMath64x64.sol";
-
-import "../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
-import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
-import "./Structs.sol";
 
 library Swaps {
     using ABDKMath64x64 for int128;
@@ -52,7 +50,8 @@ library Swaps {
 
     function originSwap(
         Storage.Curve storage curve,
-        OriginSwapData memory _swapData
+        OriginSwapData memory _swapData,
+        bool toETH
     ) external returns (uint256 tAmt_) {
         (
             Storage.Assimilator memory _o,
@@ -64,7 +63,8 @@ library Swaps {
                 Assimilators.outputNumeraire(
                     _t.addr,
                     _swapData._recipient,
-                    Assimilators.intakeRaw(_o.addr, _swapData._originAmount)
+                    Assimilators.intakeRaw(_o.addr, _swapData._originAmount),
+                    toETH
                 );
 
         SwapInfo memory _swapInfo;
@@ -96,7 +96,6 @@ library Swaps {
 
         _swapInfo.curveFactory = ICurveFactory(_swapData._curveFactory);
         _swapInfo.amountToUser = _amt.us_mul(ONE - curve.epsilon);
-        // _swapInfo.totalFee = _swapInfo.totalAmount + _swapInfo.amountToUser;
         _swapInfo.totalFee = _swapInfo.amountToUser - _amt;
         _swapInfo.protocolFeePercentage = _swapInfo
             .curveFactory
@@ -114,7 +113,8 @@ library Swaps {
         tAmt_ = Assimilators.outputNumeraire(
             _t.addr,
             _swapData._recipient,
-            _swapInfo.amountToUser
+            _swapInfo.amountToUser,
+            toETH
         );
 
         emit Trade(

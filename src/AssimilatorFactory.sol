@@ -7,6 +7,8 @@ import "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import "./assimilators/AssimilatorV2.sol";
 import "./interfaces/IAssimilatorFactory.sol";
 import "./interfaces/IOracle.sol";
+import "./interfaces/ICurveFactory.sol";
+import "forge-std/Test.sol";
 
 contract AssimilatorFactory is IAssimilatorFactory, Ownable {
     using Address for address;
@@ -31,8 +33,6 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
     mapping(bytes32 => AssimilatorV2) public assimilators;
 
     address public curveFactory;
-    address public immutable wETH;
-    address public immutable wETHOracle;
 
     modifier onlyCurveFactoryOrOwner() {
         require(
@@ -42,15 +42,7 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
         _;
     }
 
-    constructor(address _wETH, address _wEthOracle) {
-        require(_wETH.isContract(), "AssimFactory/invalid wETH Contract");
-        require(
-            _wEthOracle.isContract(),
-            "AssimFactory/invalid wETH Oracle Contract"
-        );
-        wETH = _wETH;
-        wETHOracle = _wEthOracle;
-    }
+    constructor() {}
 
     function setCurveFactory(address _curveFactory) external onlyOwner {
         require(
@@ -75,10 +67,15 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
         address _token,
         uint256 _tokenDecimals
     ) external override onlyCurveFactoryOrOwner returns (AssimilatorV2) {
+        require(
+            curveFactory != address(0),
+            "AssimFactory/Curve-Factory-Not-Set"
+        );
         bytes32 assimilatorID = keccak256(abi.encode(_token, _quote));
         if (address(assimilators[assimilatorID]) != address(0))
             revert("AssimilatorFactory/assimilator-already-exists");
         AssimilatorV2 assimilator = new AssimilatorV2(
+            ICurveFactory(curveFactory).wETH(),
             _quote,
             _oracle,
             _token,

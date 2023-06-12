@@ -16,7 +16,6 @@
 pragma solidity ^0.8.13;
 
 import "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "../../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 import "../../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
@@ -24,39 +23,46 @@ import "../lib/ABDKMath64x64.sol";
 import "../interfaces/IAssimilator.sol";
 import "../interfaces/IOracle.sol";
 import "../interfaces/IERC20Detailed.sol";
+import "../interfaces/IWeth.sol";
+import "forge-std/Test.sol";
 
 contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
 
     using SafeMath for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Detailed;
 
     IERC20Detailed public immutable pairToken;
 
-    address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address constant WETH_ORACLE = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
-
     IOracle public immutable oracle;
-    IERC20 public immutable token;
+    IERC20Detailed public immutable token;
     uint256 public immutable oracleDecimals;
     uint256 public immutable tokenDecimals;
     uint256 public immutable pairTokenDecimals;
 
+    address public immutable wETH;
+
     // solhint-disable-next-line
     constructor(
+        address _wETH,
         address _pairToken,
         IOracle _oracle,
         address _token,
         uint256 _tokenDecimals,
         uint256 _oracleDecimals
     ) {
+        wETH = _wETH;
         oracle = _oracle;
-        token = IERC20(_token);
+        token = IERC20Detailed(_token);
         oracleDecimals = _oracleDecimals;
         tokenDecimals = _tokenDecimals;
         pairToken = IERC20Detailed(_pairToken);
         pairTokenDecimals = pairToken.decimals();
+    }
+
+    function underlyingToken() external view override returns (address) {
+        return address(token);
     }
 
     function getRate() public view override returns (uint256) {
@@ -68,7 +74,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     // takes raw eurs amount, transfers it in, calculates corresponding numeraire amount and returns it
     function intakeRawAndGetBalance(
         uint256 _amount
-    ) external override returns (int128 amount_, int128 balance_) {
+    ) external payable override returns (int128 amount_, int128 balance_) {
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256 _balance = token.balanceOf(address(this));
@@ -87,7 +93,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     // takes raw eurs amount, transfers it in, calculates corresponding numeraire amount and returns it
     function intakeRaw(
         uint256 _amount
-    ) external override returns (int128 amount_) {
+    ) external payable override returns (int128 amount_) {
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256 _rate = getRate();
@@ -100,7 +106,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     // takes a numeraire amount, calculates the raw amount of eurs, transfers it in and returns the corresponding raw amount
     function intakeNumeraire(
         int128 _amount
-    ) external override returns (uint256 amount_) {
+    ) external payable override returns (uint256 amount_) {
         uint256 _rate = getRate();
 
         amount_ =
@@ -139,7 +145,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         amount_ =
             (_amount.mulu(10 ** tokenDecimals) * 10 ** pairTokenDecimals) /
             _rate;
-
+        amount_ = amount_.add(1);
         if (address(token) == address(pairToken)) {
             require(
                 amount_ >= _minpairTokenAmount &&
@@ -192,15 +198,21 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     // takes a numeraire value of eurs, figures out the raw amount, transfers raw amount out, and returns raw amount
     function outputNumeraire(
         address _dst,
-        int128 _amount
-    ) external override returns (uint256 amount_) {
+        int128 _amount,
+        bool _toETH
+    ) external payable override returns (uint256 amount_) {
         uint256 _rate = getRate();
 
         amount_ =
             (_amount.mulu(10 ** tokenDecimals) * 10 ** oracleDecimals) /
             _rate;
-
-        token.safeTransfer(_dst, amount_);
+        if (_toETH) {
+            IWETH(wETH).withdraw(amount_);
+            (bool success, ) = payable(_dst).call{value: amount_}("");
+            require(success, "Assimilator/Transfer ETH Failed");
+        } else {
+            token.safeTransfer(_dst, amount_);
+        }
     }
 
     // takes a numeraire amount and returns the raw amount
@@ -310,7 +322,10 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         balance_ = ((_tokenBal * _rate) / 1e6).divu(1e18);
     }
 
-    function transferFee(int128 _amount, address _treasury) external override {
+    function transferFee(
+        int128 _amount,
+        address _treasury
+    ) external payable override {
         uint256 _rate = getRate();
         if (_amount < 0) _amount = -(_amount);
         uint256 amount = (_amount.mulu(10 ** tokenDecimals) *

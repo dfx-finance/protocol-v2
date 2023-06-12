@@ -2,20 +2,21 @@
 
 pragma solidity ^0.8.13;
 
+import "../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 import "./Assimilators.sol";
-
 import "./Storage.sol";
-
 import "./lib/UnsafeMath64x64.sol";
 import "./lib/ABDKMath64x64.sol";
-
 import "./CurveMath.sol";
 import "./Structs.sol";
+
+import "forge-std/Test.sol";
 
 library ProportionalLiquidity {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
     using UnsafeMath64x64 for int128;
+    using SafeMath for uint256;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -86,76 +87,9 @@ library ProportionalLiquidity {
             _newShells > 0,
             "Proportional Liquidity/can't mint negative amount"
         );
-        mint(curve, msg.sender, curves_ = _newShells.mulu(1e18));
-
-        return (curves_, deposits_);
-    }
-
-    function proportionalDepositQuoteInETH(
-        Storage.Curve storage curve,
-        DepositData memory depositData
-    ) external returns (uint256 curves_, uint256[] memory) {
-        int128 __deposit = depositData.deposits.divu(1e18);
-
-        uint256 _length = curve.assets.length;
-
-        uint256[] memory deposits_ = new uint256[](_length);
-
-        (
-            int128 _oGLiq,
-            int128[] memory _oBals
-        ) = getGrossLiquidityAndBalancesForDeposit(curve);
-        // Needed to calculate liquidity invariant
-        // (int128 _oGLiqProp, int128[] memory _oBalsProp) = getGrossLiquidityAndBalances(curve);
-
-        // No liquidity, oracle sets the ratio
-        if (_oGLiq == 0) {
-            for (uint256 i = 0; i < _length; i++) {
-                // Variable here to avoid stack-too-deep errors
-                int128 _d = __deposit.mul(curve.weights[i]);
-                deposits_[i] = Assimilators.intakeNumeraire(
-                    curve.assets[i].addr,
-                    _d.add(ONE_WEI)
-                );
-            }
-        } else {
-            // We already have an existing pool ratio
-            // which must be respected
-            int128 _multiplier = __deposit.div(_oGLiq);
-
-            uint256 _baseWeight = curve.weights[0].mulu(1e18);
-            uint256 _quoteWeight = curve.weights[1].mulu(1e18);
-
-            for (uint256 i = 0; i < _length; i++) {
-                IntakeNumLpRatioInfo memory info;
-                info.baseWeight = _baseWeight;
-                info.minBase = depositData.minBase;
-                info.maxBase = depositData.maxBase;
-                info.quoteWeight = _quoteWeight;
-                info.minQuote = depositData.minQuote;
-                info.maxQuote = depositData.maxQuote;
-                info.amount = _oBals[i].mul(_multiplier).add(ONE_WEI);
-                deposits_[i] = Assimilators.intakeNumeraireLPRatio(
-                    curve.assets[i].addr,
-                    info
-                );
-            }
-        }
-
-        int128 _totalShells = curve.totalSupply.divu(1e18);
-
-        int128 _newShells = __deposit;
-
-        if (_totalShells > 0) {
-            _newShells = __deposit.mul(_totalShells);
-            _newShells = _newShells.div(_oGLiq);
-        }
-
-        require(
-            _newShells > 0,
-            "Proportional Liquidity/can't mint negative amount"
-        );
-        mint(curve, msg.sender, curves_ = _newShells.mulu(1e18));
+        curves_ = _newShells.mulu(1e18);
+        curves_.div(1e18).mul(1e18);
+        mint(curve, msg.sender, curves_);
 
         return (curves_, deposits_);
     }
@@ -235,7 +169,8 @@ library ProportionalLiquidity {
             withdrawals_[i] = Assimilators.outputNumeraire(
                 curve.assets[i].addr,
                 msg.sender,
-                _oBals[i].mul(_multiplier)
+                _oBals[i].mul(_multiplier),
+                false
             );
         }
 

@@ -19,31 +19,21 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IFlashCallback.sol";
 import "./interfaces/IWeth.sol";
 import "./interfaces/IAssimilatorFactory.sol";
-
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
 import "./lib/ABDKMath64x64.sol";
-
 import "./lib/FullMath.sol";
-
 import "./lib/NoDelegateCall.sol";
-
 import "./Orchestrator.sol";
-
 import "./ProportionalLiquidity.sol";
-
 import "./Swaps.sol";
-
 import "./ViewLiquidity.sol";
-
 import "./Storage.sol";
-
 import "./interfaces/IFreeFromUpTo.sol";
-
 import "./interfaces/ICurveFactory.sol";
-
+import "./interfaces/IAssimilator.sol";
 import "./Structs.sol";
+import "forge-std/Test.sol";
 
 library Curves {
     using ABDKMath64x64 for int128;
@@ -420,7 +410,7 @@ contract Curve is Storage, NoDelegateCall {
         symbol = _symbol;
         curveFactory = _factory;
         emit OwnershipTransfered(address(0), msg.sender);
-        wETH = ICurveFactory(_factory).assimilatorFactory().wETH();
+        wETH = ICurveFactory(_factory).wETH();
 
         Orchestrator.initialize(
             curve,
@@ -556,8 +546,69 @@ contract Curve is Storage, NoDelegateCall {
         _swapData._originAmount = _originAmount;
         _swapData._recipient = msg.sender;
         _swapData._curveFactory = curveFactory;
-        targetAmount_ = Swaps.originSwap(curve, _swapData);
+        targetAmount_ = Swaps.originSwap(curve, _swapData, false);
         // targetAmount_ = Swaps.originSwap(curve, _origin, _target, _originAmount, msg.sender,curveFactory);
+
+        require(
+            targetAmount_ >= _minTargetAmount,
+            "Curve/below-min-target-amount"
+        );
+    }
+
+    function originSwapFromETH(
+        address _target,
+        uint256 _minTargetAmount,
+        uint256 _deadline
+    )
+        external
+        payable
+        deadline(_deadline)
+        globallyTransactable
+        transactable
+        noDelegateCall
+        isNotEmergency
+        nonReentrant
+        returns (uint256 targetAmount_)
+    {
+        // first convert coming ETH to WETH & send wrapped amount to user back
+        IWETH(wETH).deposit{value: msg.value}();
+        IERC20(wETH).safeTransferFrom(address(this), msg.sender, msg.value);
+        OriginSwapData memory _swapData;
+        _swapData._origin = wETH;
+        _swapData._target = _target;
+        _swapData._originAmount = msg.value;
+        _swapData._recipient = msg.sender;
+        _swapData._curveFactory = curveFactory;
+        targetAmount_ = Swaps.originSwap(curve, _swapData, false);
+
+        require(
+            targetAmount_ >= _minTargetAmount,
+            "Curve/below-min-target-amount"
+        );
+    }
+
+    function originSwapToETH(
+        address _origin,
+        uint256 _originAmount,
+        uint256 _minTargetAmount,
+        uint256 _deadline
+    )
+        external
+        deadline(_deadline)
+        globallyTransactable
+        transactable
+        noDelegateCall
+        isNotEmergency
+        nonReentrant
+        returns (uint256 targetAmount_)
+    {
+        OriginSwapData memory _swapData;
+        _swapData._origin = _origin;
+        _swapData._target = wETH;
+        _swapData._originAmount = _originAmount;
+        _swapData._recipient = msg.sender;
+        _swapData._curveFactory = curveFactory;
+        targetAmount_ = Swaps.originSwap(curve, _swapData, true);
 
         require(
             targetAmount_ >= _minTargetAmount,
@@ -725,13 +776,16 @@ contract Curve is Storage, NoDelegateCall {
             uint256 curvesMinted_,
             uint256[] memory deposits_
         ) = ProportionalLiquidity.proportionalDeposit(curve, _depositData);
+
         uint256 remainder = 0;
-        if (curve.assets[0].addr == wETH) {
+        if (IAssimilator(curve.assets[0].addr).underlyingToken() == wETH) {
             remainder = msg.value - deposits_[0];
-        } else if (curve.assets[1].addr == wETH) {
+        } else if (
+            IAssimilator(curve.assets[1].addr).underlyingToken() == wETH
+        ) {
             remainder = msg.value - deposits_[1];
         } else {
-            revert();
+            revert("reverted here");
         }
         // now need to determine which is wETH
         if (remainder > 0) {
@@ -742,7 +796,7 @@ contract Curve is Storage, NoDelegateCall {
             );
             IWETH(wETH).withdraw(remainder);
             (bool success, ) = msg.sender.call{value: remainder}("");
-            require(success, "Curve/eth transfer failed");
+            require(success, "Curve/ETH transfer failed");
         }
         return (curvesMinted_, deposits_);
     }
@@ -986,4 +1040,6 @@ contract Curve is Storage, NoDelegateCall {
     ) public view returns (address assimilator_) {
         assimilator_ = curve.assimilators[_derivative].addr;
     }
+
+    receive() external payable {}
 }

@@ -30,6 +30,4 @@ interface IAssimilatorFactory {
         address _token,
         uint256 _tokenDecimals
     ) external returns (AssimilatorV2);
-
-    function wETH() external view returns (address);
 }

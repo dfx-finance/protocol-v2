@@ -20,9 +20,7 @@ import "./Curve.sol";
 import "./interfaces/IWeth.sol";
 import "./interfaces/ICurveFactory.sol";
 import "./interfaces/IWeth.sol";
-
 import "../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
-
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -37,7 +35,7 @@ contract Router {
     constructor(address _factory) {
         require(_factory != address(0), "Curve/factory-cannot-be-zero-address");
         factory = _factory;
-        _wETH = ICurveFactory(factory).assimilatorFactory().wETH();
+        _wETH = ICurveFactory(factory).wETH();
     }
 
     /// @notice view how much target amount a fixed origin amount will swap for
@@ -53,13 +51,12 @@ contract Router {
         uint256 _originAmount
     ) external view returns (uint256 targetAmount_) {
         // If its an immediate pair then just swap directly on it
-        address curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_origin, _target))
+        address payable curve0 = CurveFactoryV2(factory).getCurve(
+            _origin,
+            _target
         );
         if (_origin == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).curves(
-                keccak256(abi.encode(_target, _origin))
-            );
+            curve0 = CurveFactoryV2(factory).getCurve(_target, _origin);
         }
         if (curve0 != address(0)) {
             targetAmount_ = Curve(curve0).viewOriginSwap(
@@ -71,11 +68,10 @@ contract Router {
         }
 
         // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_origin, _quoteCurrency))
-        );
-        address curve1 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_target, _quoteCurrency))
+        curve0 = CurveFactoryV2(factory).getCurve(_origin, _quoteCurrency);
+        address payable curve1 = CurveFactoryV2(factory).getCurve(
+            _target,
+            _quoteCurrency
         );
         if (curve0 != address(0) && curve1 != address(0)) {
             uint256 _quoteAmount = Curve(curve0).viewOriginSwap(
@@ -117,13 +113,12 @@ contract Router {
         );
 
         // If its an immediate pair then just swap directly on it
-        address curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_origin, _target))
+        address payable curve0 = CurveFactoryV2(factory).getCurve(
+            _origin,
+            _target
         );
         if (_origin == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).curves(
-                keccak256(abi.encode(_target, _origin))
-            );
+            curve0 = CurveFactoryV2(factory).getCurve(_target, _origin);
         }
         if (curve0 != address(0)) {
             IERC20(_origin).safeApprove(curve0, _originAmount);
@@ -139,11 +134,10 @@ contract Router {
         }
 
         // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_origin, _quoteCurrency))
-        );
-        address curve1 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_target, _quoteCurrency))
+        curve0 = CurveFactoryV2(factory).getCurve(_origin, _quoteCurrency);
+        address payable curve1 = CurveFactoryV2(factory).getCurve(
+            _target,
+            _quoteCurrency
         );
         if (curve0 != address(0) && curve1 != address(0)) {
             IERC20(_origin).safeApprove(curve0, _originAmount);
@@ -181,13 +175,12 @@ contract Router {
         IWETH(_wETH).deposit{value: _originAmount}();
 
         // If its an immediate pair then just swap directly on it
-        address curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_wETH, _target))
+        address payable curve0 = CurveFactoryV2(factory).getCurve(
+            _wETH,
+            _target
         );
         if (_wETH == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).curves(
-                keccak256(abi.encode(_target, _wETH))
-            );
+            curve0 = CurveFactoryV2(factory).getCurve(_target, _wETH);
         }
         if (curve0 != address(0)) {
             IERC20(_wETH).safeApprove(curve0, _originAmount);
@@ -203,11 +196,10 @@ contract Router {
         }
 
         // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_wETH, _quoteCurrency))
-        );
-        address curve1 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_target, _quoteCurrency))
+        curve0 = CurveFactoryV2(factory).getCurve(_wETH, _quoteCurrency);
+        address payable curve1 = CurveFactoryV2(factory).getCurve(
+            _target,
+            _quoteCurrency
         );
         if (curve0 != address(0) && curve1 != address(0)) {
             IERC20(_wETH).safeApprove(curve0, _originAmount);
@@ -249,13 +241,12 @@ contract Router {
         );
 
         // If its an immediate pair then just swap directly on it
-        address curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_origin, _wETH))
+        address payable curve0 = CurveFactoryV2(factory).getCurve(
+            _origin,
+            _wETH
         );
         if (_origin == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).curves(
-                keccak256(abi.encode(_wETH, _origin))
-            );
+            curve0 = CurveFactoryV2(factory).getCurve(_wETH, _origin);
         }
         if (curve0 != address(0)) {
             IERC20(_origin).safeApprove(curve0, _originAmount);
@@ -272,11 +263,10 @@ contract Router {
         }
 
         // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_origin, _quoteCurrency))
-        );
-        address curve1 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_wETH, _quoteCurrency))
+        curve0 = CurveFactoryV2(factory).getCurve(_origin, _quoteCurrency);
+        address payable curve1 = CurveFactoryV2(factory).getCurve(
+            _wETH,
+            _quoteCurrency
         );
         if (curve0 != address(0) && curve1 != address(0)) {
             IERC20(_origin).safeApprove(curve0, _originAmount);
@@ -317,13 +307,12 @@ contract Router {
         uint256 _targetAmount
     ) public view returns (uint256 originAmount_) {
         // If its an immediate pair then just swap directly on it
-        address curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_origin, _target))
+        address payable curve0 = CurveFactoryV2(factory).getCurve(
+            _origin,
+            _target
         );
         if (_origin == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).curves(
-                keccak256(abi.encode(_target, _origin))
-            );
+            curve0 = CurveFactoryV2(factory).getCurve(_target, _origin);
         }
 
         if (curve0 != address(0)) {
@@ -336,11 +325,10 @@ contract Router {
         }
 
         // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_target, _quoteCurrency))
-        );
-        address curve1 = CurveFactoryV2(factory).curves(
-            keccak256(abi.encode(_origin, _quoteCurrency))
+        curve0 = CurveFactoryV2(factory).getCurve(_target, _quoteCurrency);
+        address payable curve1 = CurveFactoryV2(factory).getCurve(
+            _origin,
+            _quoteCurrency
         );
         if (curve0 != address(0) && curve1 != address(0)) {
             uint256 _quoteAmount = Curve(curve0).viewTargetSwap(

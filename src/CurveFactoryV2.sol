@@ -45,7 +45,9 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
 
     mapping(bytes32 => address) public curves;
 
-    constructor(address _assimFactory, address _config) {
+    address public immutable wETH;
+
+    constructor(address _assimFactory, address _config, address _weth) {
         require(
             _assimFactory.isContract(),
             "CurveFactory/invalid-assimFactory"
@@ -53,6 +55,7 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         assimilatorFactory = IAssimilatorFactory(_assimFactory);
         require(_config.isContract(), "CurveFactory/invalid-config");
         config = IConfig(_config);
+        wETH = _weth;
     }
 
     function getGlobalFrozenState()
@@ -100,9 +103,9 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
     function getCurve(
         address _baseCurrency,
         address _quoteCurrency
-    ) external view returns (address) {
+    ) external view returns (address payable) {
         bytes32 curveId = keccak256(abi.encode(_baseCurrency, _quoteCurrency));
-        return (curves[curveId]);
+        return payable(curves[curveId]);
     }
 
     function newCurve(CurveInfo memory _info) public returns (Curve) {
@@ -154,16 +157,21 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         _quoteAssim = (
             assimilatorFactory.getAssimilator(
                 _info._quoteCurrency,
-                _info._quoteCurrency
+                // _info._quoteCurrency
+                _info._baseCurrency
             )
         );
         if (address(_quoteAssim) == address(0))
             _quoteAssim = assimilatorFactory.newAssimilator(
-                _info._quoteCurrency,
+                _info._baseCurrency,
                 _info._quoteOracle,
                 _info._quoteCurrency,
                 quoteDec
             );
+        // _info._quoteCurrency,
+        // _info._quoteOracle,
+        // _info._quoteCurrency,
+        // quoteDec
 
         address[] memory _assets = new address[](10);
         uint256[] memory _assetWeights = new uint256[](2);

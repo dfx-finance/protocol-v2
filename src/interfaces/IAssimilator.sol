@@ -16,19 +16,21 @@
 pragma solidity ^0.8.13;
 
 interface IAssimilator {
-    function oracleDecimals() external view returns(uint256);
-    
-    function tokenDecimals() external view returns(uint256);
+    function oracleDecimals() external view returns (uint256);
+
+    function underlyingToken() external view returns (address);
+
+    function tokenDecimals() external view returns (uint256);
 
     function getRate() external view returns (uint256);
 
-    function intakeRaw(uint256 amount) external returns (int128);
+    function intakeRaw(uint256 amount) external payable returns (int128);
 
-    function intakeRawAndGetBalance(uint256 amount)
-        external
-        returns (int128, int128);
+    function intakeRawAndGetBalance(
+        uint256 amount
+    ) external payable returns (int128, int128);
 
-    function intakeNumeraire(int128 amount) external returns (uint256);
+    function intakeNumeraire(int128 amount) external payable returns (uint256);
 
     function intakeNumeraireLPRatio(
         uint256,
@@ -43,13 +45,16 @@ interface IAssimilator {
 
     function outputRaw(address dst, uint256 amount) external returns (int128);
 
-    function outputRawAndGetBalance(address dst, uint256 amount)
-        external
-        returns (int128, int128);
+    function outputRawAndGetBalance(
+        address dst,
+        uint256 amount
+    ) external returns (int128, int128);
 
-    function outputNumeraire(address dst, int128 amount)
-        external
-        returns (uint256);
+    function outputNumeraire(
+        address dst,
+        int128 amount,
+        bool toETH
+    ) external payable returns (uint256);
 
     function viewRawAmount(int128) external view returns (uint256);
 
@@ -70,10 +75,10 @@ interface IAssimilator {
 
     function viewNumeraireBalance(address) external view returns (int128);
 
-    function viewNumeraireAmountAndBalance(address, uint256)
-        external
-        view
-        returns (int128, int128);
+    function viewNumeraireAmountAndBalance(
+        address,
+        uint256
+    ) external view returns (int128, int128);
 
-    function transferFee(int128, address) external;
+    function transferFee(int128, address) external payable;
 }

@@ -19,12 +19,12 @@ pragma experimental ABIEncoderV2;
 import "../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import "./Curve.sol";
+import "./interfaces/IERC20Detailed.sol";
 
 contract Zap {
     using SafeMath for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Detailed;
 
     struct ZapData {
         address curve;
@@ -45,55 +45,6 @@ contract Zap {
 
     constructor() {}
 
-    // /// @notice Zaps from a quote token (non-USDC) into the LP pool
-    // /// @param _curve The address of the curve
-    // /// @param _zapAmount The amount to zap, denominated in the ERC20's decimal placing
-    // /// @param _deadline Deadline for this zap to be completed by
-    // /// @param _minLPAmount Min LP amount to get
-    // /// @return uint256 - The amount of LP tokens received
-    // function zapFromBase(
-    //     address _curve,
-    //     uint256 _zapAmount,
-    //     uint256 _deadline,
-    //     uint256 _minLPAmount
-    // ) public returns (uint256) {
-    //     return zap(_curve, _zapAmount, _deadline, _minLPAmount, true);
-    // }
-
-    // /// @notice Zaps from a quote token (USDC) into the LP pool
-    // /// @param _curve The address of the curve
-    // /// @param _zapAmount The amount to zap, denominated in the ERC20's decimal placing
-    // /// @param _deadline Deadline for this zap to be completed by
-    // /// @param _minLPAmount Min LP amount to get
-    // /// @return uint256 - The amount of LP tokens received
-    // function zapFromQuote(
-    //     address _curve,
-    //     uint256 _zapAmount,
-    //     uint256 _deadline,
-    //     uint256 _minLPAmount
-    // ) public returns (uint256) {
-    //     return zap(_curve, _zapAmount, _deadline, _minLPAmount, false);
-    // }
-
-    // // unzap
-    // function upzapFromBase(
-    //     address _curve,
-    //     uint256 _lpAmount,
-    //     uint256 _minTokenAmount,
-    //     uint256 _deadline
-    // ) public returns (uint256) {
-    //     return unzap(_curve, _lpAmount, _deadline, _minTokenAmount, true);
-    // }
-
-    // function upzapFromQuote(
-    //     address _curve,
-    //     uint256 _lpAmount,
-    //     uint256 _minTokenAmount,
-    //     uint256 _deadline
-    // ) public returns (uint256) {
-    //     return unzap(_curve, _lpAmount, _deadline, _minTokenAmount, false);
-    // }
-
     function unzap(
         address _curve,
         uint256 _lpAmount,
@@ -101,19 +52,23 @@ contract Zap {
         uint256 _minTokenAmount,
         address _token
     ) public returns (uint256) {
-        address _base = Curve(_curve).numeraires(0);
-        address _quote = Curve(_curve).numeraires(1);
-        IERC20 quote = IERC20(_quote);
+        address _base = Curve(payable(_curve)).numeraires(0);
+        address _quote = Curve(payable(_curve)).numeraires(1);
+        IERC20Detailed quote = IERC20Detailed(_quote);
         require(_token == _base || _token == _quote, "zap/token-not-supported");
         bool isFromBase = _token == _base ? true : false;
-        IERC20(_curve).safeTransferFrom(msg.sender, address(this), _lpAmount);
-        Curve(_curve).withdraw(_lpAmount, _deadline);
-        address base = Curve(_curve).reserves(0);
+        IERC20Detailed(_curve).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _lpAmount
+        );
+        Curve(payable(_curve)).withdraw(_lpAmount, _deadline);
+        address base = Curve(payable(_curve)).reserves(0);
         if (isFromBase) {
-            uint256 baseAmount = IERC20(base).balanceOf(address(this));
-            IERC20(base).safeApprove(_curve, 0);
-            IERC20(base).safeApprove(_curve, type(uint256).max);
-            Curve(_curve).originSwap(
+            uint256 baseAmount = IERC20Detailed(base).balanceOf(address(this));
+            IERC20Detailed(base).safeApprove(_curve, 0);
+            IERC20Detailed(base).safeApprove(_curve, type(uint256).max);
+            Curve(payable(_curve)).originSwap(
                 base,
                 address(quote),
                 baseAmount,
@@ -131,19 +86,19 @@ contract Zap {
             uint256 quoteAmount = quote.balanceOf(address(this));
             quote.safeApprove(_curve, 0);
             quote.safeApprove(_curve, type(uint256).max);
-            Curve(_curve).originSwap(
+            Curve(payable(_curve)).originSwap(
                 address(quote),
                 base,
                 quoteAmount,
                 0,
                 _deadline
             );
-            uint256 baseAmount = IERC20(base).balanceOf(address(this));
+            uint256 baseAmount = IERC20Detailed(base).balanceOf(address(this));
             require(
                 baseAmount >= _minTokenAmount,
                 "!Unzap/not-enough-token-amount"
             );
-            IERC20(base).safeTransfer(msg.sender, baseAmount);
+            IERC20Detailed(base).safeTransfer(msg.sender, baseAmount);
             return baseAmount;
         }
     }
@@ -161,73 +116,116 @@ contract Zap {
         uint256 _minLPAmount,
         address _token
     ) public returns (uint256) {
-        address _base = Curve(_curve).numeraires(0);
-        address _quote = Curve(_curve).numeraires(1);
-        IERC20 quote = IERC20(_quote);
-        require(_token == _base || _token == _quote, "zap/token-not-supported");
-        bool isFromBase = _token == _base ? true : false;
-        (address base, uint256 swapAmount) = calcSwapAmountForZap(
+        IERC20Detailed base = IERC20Detailed(
+            Curve(payable(_curve)).numeraires(0)
+        );
+        IERC20Detailed quote = IERC20Detailed(
+            Curve(payable(_curve)).numeraires(1)
+        );
+        require(
+            _token == address(base) || _token == address(quote),
+            "zap/token-not-supported"
+        );
+        bool isFromBase = _token == address(base) ? true : false;
+        (, uint256 swapAmount) = calcSwapAmountForZap(
+            // (, uint256 swapAmount) = calcSwapAmountForZap(
             _curve,
             _zapAmount,
             isFromBase
         );
-        require(
-            base == Curve(_curve).numeraires(0),
-            "!Zap/base-is-not-in-numeraires"
-        );
 
         // Swap on curve
-        if (isFromBase) {
-            IERC20(base).safeTransferFrom(
-                msg.sender,
-                address(this),
+        if (isFromBase)
+            _zapFromBase(
+                _curve,
+                base,
+                address(quote),
+                swapAmount,
+                _deadline,
                 _zapAmount
             );
-            IERC20(base).safeApprove(_curve, 0);
-            IERC20(base).safeApprove(_curve, swapAmount);
-
-            Curve(_curve).originSwap(
-                base,
-                address(quote),
+        else
+            _zapFromQuote(
+                _curve,
+                address(base),
+                quote,
                 swapAmount,
-                0,
-                _deadline
+                _deadline,
+                _zapAmount
             );
-        } else {
-            quote.safeTransferFrom(msg.sender, address(this), _zapAmount);
-            quote.safeApprove(_curve, 0);
-            quote.safeApprove(_curve, swapAmount);
+        return zap_(_curve, base, quote, _deadline, _minLPAmount);
+    }
 
-            Curve(_curve).originSwap(
-                address(quote),
-                base,
-                swapAmount,
-                0,
-                _deadline
-            );
-        }
+    // helpers for zap
+    function _zapFromBase(
+        address _curve,
+        IERC20Detailed _base,
+        address _quote,
+        uint256 _swapAmount,
+        uint256 _deadline,
+        uint256 _zapAmount
+    ) private {
+        (_base).safeTransferFrom(msg.sender, address(this), _zapAmount);
+        (_base).safeApprove(_curve, 0);
+        (_base).safeApprove(_curve, _swapAmount);
 
+        Curve(payable(_curve)).originSwap(
+            address(_base),
+            _quote,
+            _swapAmount,
+            0,
+            _deadline
+        );
+    }
+
+    function _zapFromQuote(
+        address _curve,
+        address _base,
+        IERC20Detailed _quote,
+        uint256 _swapAmount,
+        uint256 _deadline,
+        uint256 _zapAmount
+    ) private {
+        _quote.safeTransferFrom(msg.sender, address(this), _zapAmount);
+        _quote.safeApprove(_curve, 0);
+        _quote.safeApprove(_curve, _swapAmount);
+
+        Curve(payable(_curve)).originSwap(
+            address(_quote),
+            _base,
+            _swapAmount,
+            0,
+            _deadline
+        );
+    }
+
+    function zap_(
+        address _curve,
+        IERC20Detailed _base,
+        IERC20Detailed _quote,
+        uint256 _deadline,
+        uint256 _minLPAmount
+    ) private returns (uint256) {
         // Calculate deposit amount
         (uint256 depositAmount, , ) = _calcDepositAmount(
             _curve,
-            base,
+            _base,
             ZapDepositData({
-                curBaseAmount: IERC20(base).balanceOf(address(this)),
-                curQuoteAmount: quote.balanceOf(address(this)),
-                maxBaseAmount: IERC20(base).balanceOf(address(this)),
-                maxQuoteAmount: quote.balanceOf(address(this))
+                curBaseAmount: _base.balanceOf(address(this)),
+                curQuoteAmount: _quote.balanceOf(address(this)),
+                maxBaseAmount: _base.balanceOf(address(this)),
+                maxQuoteAmount: _quote.balanceOf(address(this))
             })
         );
 
         // Can only deposit the smaller amount as we won't have enough of the
         // token to deposit
-        IERC20(base).safeApprove(_curve, 0);
-        IERC20(base).safeApprove(_curve, IERC20(base).balanceOf(address(this)));
+        _base.safeApprove(_curve, 0);
+        _base.safeApprove(_curve, _base.balanceOf(address(this)));
 
-        quote.safeApprove(_curve, 0);
-        quote.safeApprove(_curve, quote.balanceOf(address(this)));
-
-        (uint256 lpAmount, ) = Curve(_curve).deposit(
+        _quote.safeApprove(_curve, 0);
+        _quote.safeApprove(_curve, _quote.balanceOf(address(this)));
+        (uint256 lpAmount, ) = Curve(payable(_curve)).deposit(
             depositAmount,
             0,
             0,
@@ -238,15 +236,12 @@ contract Zap {
         require(lpAmount >= _minLPAmount, "!Zap/not-enough-lp-amount");
 
         // Transfer all remaining balances back to user
-        IERC20(_curve).safeTransfer(
+        IERC20Detailed(_curve).safeTransfer(
             msg.sender,
-            IERC20(_curve).balanceOf(address(this))
+            IERC20Detailed(_curve).balanceOf(address(this))
         );
-        IERC20(base).safeTransfer(
-            msg.sender,
-            IERC20(base).balanceOf(address(this))
-        );
-        quote.safeTransfer(msg.sender, quote.balanceOf(address(this)));
+        _base.safeTransfer(msg.sender, _base.balanceOf(address(this)));
+        _quote.safeTransfer(msg.sender, _quote.balanceOf(address(this)));
 
         return lpAmount;
     }
@@ -260,7 +255,7 @@ contract Zap {
     function calcSwapAmountForZapFromBase(
         address _curve,
         uint256 _zapAmount
-    ) public view returns (uint256) {
+    ) public returns (uint256) {
         (, uint256 ret) = calcSwapAmountForZap(_curve, _zapAmount, true);
         return ret;
     }
@@ -272,7 +267,7 @@ contract Zap {
     function calcSwapAmountForZapFromQuote(
         address _curve,
         uint256 _zapAmount
-    ) public view returns (uint256) {
+    ) public returns (uint256) {
         (, uint256 ret) = calcSwapAmountForZap(_curve, _zapAmount, false);
         return ret;
     }
@@ -287,14 +282,16 @@ contract Zap {
         address _curve,
         uint256 _zapAmount,
         bool isFromBase
-    ) public view returns (address, uint256) {
+    ) public returns (address, uint256) {
         // Base will always be index 0
-        address base = Curve(_curve).reserves(0);
-        IERC20 quote = IERC20(Curve(_curve).reserves(1));
+        address base = Curve(payable(_curve)).reserves(0);
+        IERC20Detailed quote = IERC20Detailed(
+            Curve(payable(_curve)).reserves(1)
+        );
 
         // Ratio of base quote in 18 decimals
-        uint256 curveBaseBal = IERC20(base).balanceOf(_curve);
-        uint8 curveBaseDecimals = ERC20(base).decimals();
+        uint256 curveBaseBal = IERC20Detailed(base).balanceOf(_curve);
+        uint8 curveBaseDecimals = IERC20Detailed(base).decimals();
         uint256 curveQuoteBal = quote.balanceOf(_curve);
 
         // How much user wants to swap
@@ -350,14 +347,14 @@ contract Zap {
     function calcMaxDepositAmountGivenQuote(
         address _curve,
         uint256 _quoteAmount
-    ) public view returns (uint256, uint256, uint256[] memory) {
+    ) public returns (uint256, uint256, uint256[] memory) {
         uint256 maxBaseAmount = calcMaxBaseForDeposit(_curve, _quoteAmount);
-        address base = Curve(_curve).reserves(0);
+        address base = Curve(payable(_curve)).reserves(0);
 
         return
             _calcDepositAmount(
                 _curve,
-                base,
+                IERC20Detailed(base),
                 ZapDepositData({
                     curBaseAmount: maxBaseAmount,
                     curQuoteAmount: _quoteAmount,
@@ -378,14 +375,14 @@ contract Zap {
     function calcMaxDepositAmountGivenBase(
         address _curve,
         uint256 _baseAmount
-    ) public view returns (uint256, uint256, uint256[] memory) {
+    ) public returns (uint256, uint256, uint256[] memory) {
         uint256 maxQuoteAmount = calcMaxQuoteForDeposit(_curve, _baseAmount);
-        address base = Curve(_curve).reserves(0);
+        address base = Curve(payable(_curve)).reserves(0);
 
         return
             _calcDepositAmount(
                 _curve,
-                base,
+                IERC20Detailed(base),
                 ZapDepositData({
                     curBaseAmount: _baseAmount,
                     curQuoteAmount: maxQuoteAmount,
@@ -395,15 +392,15 @@ contract Zap {
             );
     }
 
-    /// @notice Given a base amount, calculate the max base amount to be deposited
-    /// @param _curve The address of the curve
-    /// @param _quoteAmount The amount of base tokens
-    /// @return uint256 - The max quote amount
+    /// notice Given a base amount, calculate the max base amount to be deposited
+    /// param payable _curve The address of the curve
+    /// param _quoteAmount The amount of base tokens
+    /// return uint256 - The max quote amount
     function calcMaxBaseForDeposit(
         address _curve,
         uint256 _quoteAmount
     ) public view returns (uint256) {
-        (, uint256[] memory outs) = Curve(_curve).viewDeposit(2e18);
+        (, uint256[] memory outs) = Curve(payable(_curve)).viewDeposit(2e18);
         uint256 baseAmount = outs[0].mul(_quoteAmount).div(1e6);
 
         return baseAmount;
@@ -416,9 +413,11 @@ contract Zap {
     function calcMaxQuoteForDeposit(
         address _curve,
         uint256 _baseAmount
-    ) public view returns (uint256) {
-        uint8 curveBaseDecimals = ERC20(Curve(_curve).reserves(0)).decimals();
-        (, uint256[] memory outs) = Curve(_curve).viewDeposit(2e18);
+    ) public returns (uint256) {
+        uint8 curveBaseDecimals = IERC20Detailed(
+            Curve(payable(_curve)).reserves(0)
+        ).decimals();
+        (, uint256[] memory outs) = Curve(payable(_curve)).viewDeposit(2e18);
         uint256 ratio = outs[0].mul(10 ** (36 - curveBaseDecimals)).div(
             outs[1].mul(1e12)
         );
@@ -455,7 +454,7 @@ contract Zap {
         // Computer bring me magic number
         for (uint256 i = 0; i < 32; i++) {
             // How much will we receive in return
-            recvAmount = Curve(zapData.curve).viewOriginSwap(
+            recvAmount = Curve(payable(zapData.curve)).viewOriginSwap(
                 zapData.quote,
                 zapData.base,
                 swapAmount
@@ -515,7 +514,7 @@ contract Zap {
         // Computer bring me magic number
         for (uint256 i = 0; i < 32; i++) {
             // How much will we receive in return
-            recvAmount = Curve(zapData.curve).viewOriginSwap(
+            recvAmount = Curve(payable(zapData.curve)).viewOriginSwap(
                 zapData.base,
                 zapData.quote,
                 swapAmount
@@ -561,7 +560,7 @@ contract Zap {
 
     /// @notice Given a ZapDepositData structure, calculate the max depositAmount, the max
     ///          LP tokens received, and the required amounts
-    /// @param _curve The address of the curve
+    /// param _curve The address of the curve
     /// @param _base  The base address in the curve
     /// @param dd     Deposit data
 
@@ -570,15 +569,16 @@ contract Zap {
     /// @return uint256[] memory - The baseAmount and quoteAmount
     function _calcDepositAmount(
         address _curve,
-        address _base,
+        IERC20Detailed _base,
         ZapDepositData memory dd
-    ) internal view returns (uint256, uint256, uint256[] memory) {
+    ) internal returns (uint256, uint256, uint256[] memory) {
         // Calculate _depositAmount
-        uint8 curveBaseDecimals = ERC20(_base).decimals();
-        IERC20 quote = IERC20(Curve(_curve).numeraires(1));
-        uint256 curveRatio = IERC20(_base)
+        IERC20Detailed quote = IERC20Detailed(
+            Curve(payable(_curve)).numeraires(1)
+        );
+        uint256 curveRatio = _base
             .balanceOf(_curve)
-            .mul(10 ** (36 - uint256(curveBaseDecimals)))
+            .mul(10 ** (36 - _base.decimals()))
             .div(quote.balanceOf(_curve).mul(1e12));
 
         // Deposit amount is denomiated in USD value (based on pool LP ratio)
@@ -587,7 +587,7 @@ contract Zap {
 
         // Things will be based on ratio on deposit
         uint256 baseDepositAmount = dd.curBaseAmount.mul(
-            10 ** (18 - uint256(curveBaseDecimals))
+            10 ** (18 - _base.decimals())
         );
 
         // Trim out decimal values
@@ -597,9 +597,8 @@ contract Zap {
         depositAmount = _roundDown(depositAmount);
 
         // // Make sure we have enough of our inputs
-        (uint256 lps, uint256[] memory outs) = Curve(_curve).viewDeposit(
-            depositAmount
-        );
+        (uint256 lps, uint256[] memory outs) = Curve(payable(_curve))
+            .viewDeposit(depositAmount);
 
         uint256 baseDelta = outs[0] > dd.maxBaseAmount
             ? outs[0].sub(dd.curBaseAmount)

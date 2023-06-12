@@ -19,4 +19,6 @@ interface ICurveFactory {
     function getPoolCap(address pool) external view returns (uint256);
 
     function assimilatorFactory() external view returns (IAssimilatorFactory);
+
+    function wETH() external view returns (address);
 }
