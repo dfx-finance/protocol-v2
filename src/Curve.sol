@@ -835,7 +835,12 @@ contract Curve is Storage, NoDelegateCall {
         noDelegateCall
         returns (uint256[] memory withdrawals_)
     {
-        return ProportionalLiquidity.proportionalWithdraw(curve, _curvesToBurn);
+        return
+            ProportionalLiquidity.proportionalWithdraw(
+                curve,
+                _curvesToBurn,
+                false
+            );
     }
 
     /// @notice  withdrawas amount of curve tokens from the the pool equally from the numeraire assets of the pool with no slippage
@@ -853,7 +858,35 @@ contract Curve is Storage, NoDelegateCall {
         isNotEmergency
         returns (uint256[] memory withdrawals_)
     {
-        return ProportionalLiquidity.proportionalWithdraw(curve, _curvesToBurn);
+        return
+            ProportionalLiquidity.proportionalWithdraw(
+                curve,
+                _curvesToBurn,
+                false
+            );
+    }
+
+    /// @notice  withdrawas amount of curve tokens from the the pool equally from the numeraire assets of the pool with no slippage, WETH is unwrapped to ETH
+    /// @param   _curvesToBurn the full amount you want to withdraw from the pool which will be withdrawn from evenly amongst the
+    ///                        numeraire assets of the pool
+    /// @return withdrawals_ the amonts of numeraire assets withdrawn from the pool
+    function withdrawETH(
+        uint256 _curvesToBurn,
+        uint256 _deadline
+    )
+        external
+        deadline(_deadline)
+        nonReentrant
+        noDelegateCall
+        isNotEmergency
+        returns (uint256[] memory withdrawals_)
+    {
+        return
+            ProportionalLiquidity.proportionalWithdraw(
+                curve,
+                _curvesToBurn,
+                true
+            );
     }
 
     /// @notice  views the withdrawal information from the pool

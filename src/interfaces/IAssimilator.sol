@@ -20,6 +20,8 @@ interface IAssimilator {
 
     function underlyingToken() external view returns (address);
 
+    function getWeth() external view returns (address);
+
     function tokenDecimals() external view returns (uint256);
 
     function getRate() external view returns (uint256);

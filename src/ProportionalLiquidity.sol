@@ -9,6 +9,7 @@ import "./lib/UnsafeMath64x64.sol";
 import "./lib/ABDKMath64x64.sol";
 import "./CurveMath.sol";
 import "./Structs.sol";
+import "./interfaces/IAssimilator.sol";
 
 import "forge-std/Test.sol";
 
@@ -37,8 +38,6 @@ library ProportionalLiquidity {
             int128 _oGLiq,
             int128[] memory _oBals
         ) = getGrossLiquidityAndBalancesForDeposit(curve);
-        // Needed to calculate liquidity invariant
-        // (int128 _oGLiqProp, int128[] memory _oBalsProp) = getGrossLiquidityAndBalances(curve);
 
         // No liquidity, oracle sets the ratio
         if (_oGLiq == 0) {
@@ -88,7 +87,7 @@ library ProportionalLiquidity {
             "Proportional Liquidity/can't mint negative amount"
         );
         curves_ = _newShells.mulu(1e18);
-        curves_.div(1e18).mul(1e18);
+        curves_ = curves_.div(1e17).mul(1e17);
         mint(curve, msg.sender, curves_);
 
         return (curves_, deposits_);
@@ -152,7 +151,8 @@ library ProportionalLiquidity {
 
     function proportionalWithdraw(
         Storage.Curve storage curve,
-        uint256 _withdrawal
+        uint256 _withdrawal,
+        bool _toETH
     ) external returns (uint256[] memory) {
         uint256 _length = curve.assets.length;
 
@@ -166,12 +166,24 @@ library ProportionalLiquidity {
         int128 _multiplier = __withdrawal.div(_totalShells);
 
         for (uint256 i = 0; i < _length; i++) {
-            withdrawals_[i] = Assimilators.outputNumeraire(
-                curve.assets[i].addr,
-                msg.sender,
-                _oBals[i].mul(_multiplier),
-                false
-            );
+            if (
+                _toETH &&
+                (IAssimilator(curve.assets[i].addr).underlyingToken() ==
+                    IAssimilator(curve.assets[i].addr).getWeth())
+            ) {
+                withdrawals_[i] = Assimilators.outputNumeraire(
+                    curve.assets[i].addr,
+                    msg.sender,
+                    _oBals[i].mul(_multiplier),
+                    true
+                );
+            } else
+                withdrawals_[i] = Assimilators.outputNumeraire(
+                    curve.assets[i].addr,
+                    msg.sender,
+                    _oBals[i].mul(_multiplier),
+                    false
+                );
         }
 
         burn(curve, msg.sender, _withdrawal);

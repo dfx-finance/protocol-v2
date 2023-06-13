@@ -26,6 +26,7 @@ import "./lib/MockToken.sol";
 
 import "./utils/Utils.sol";
 import "forge-std/Test.sol";
+import "forge-std/StdAssertions.sol";
 
 contract V25Test is Test {
     using SafeMath for uint256;
@@ -148,16 +149,12 @@ contract V25Test is Test {
         );
         uint256 crvEurocBal_1 = euroc.balanceOf(address(eurocUsdcCurve));
         uint256 crvUsdcBal_1 = usdc.balanceOf(address(eurocUsdcCurve));
-        console.log("lp added, pool euroc balance is ", crvEurocBal_1);
-        console.log("lp added, pool usdc balance is ", crvUsdcBal_1);
         cheats.stopPrank();
         // account 1 is an attacker
 
         // Loop 10 000  gas = 695594585   so if gas price is 231 wei =  0.000000231651787155 => Gas =  161 matic
         uint256 e_u_bal_0 = euroc.balanceOf(address(accounts[1]));
         uint256 u_u_bal_0 = usdc.balanceOf(address(accounts[1]));
-        console.log("before deposit, user euroc bal is ", e_u_bal_0);
-        console.log("before deposit, user usdc bal is ", u_u_bal_0);
         cheats.startPrank(address(accounts[1]));
         for (uint256 i = 0; i < 10000; i++) {
             eurocUsdcCurve.deposit(
@@ -169,14 +166,8 @@ contract V25Test is Test {
                 block.timestamp + 60
             );
         }
-        // eurocUsdcCurve.deposit(
-        //     180033072289251500000,
-        //     0,
-        //     0,
-        //     _maxQuoteAmount,
-        //     _maxBaseAmount,
-        //     block.timestamp + 60
-        // );
+        uint256 crvEurocBal_2 = euroc.balanceOf(address(eurocUsdcCurve));
+        uint256 crvUsdcBal_2 = usdc.balanceOf(address(eurocUsdcCurve));
         eurocUsdcCurve.withdraw(
             eurocUsdcCurve.balanceOf(address(accounts[1])),
             block.timestamp + 60
@@ -184,8 +175,11 @@ contract V25Test is Test {
         cheats.stopPrank();
         uint256 e_u_bal_1 = euroc.balanceOf(address(accounts[1]));
         uint256 u_u_bal_1 = usdc.balanceOf(address(accounts[1]));
-        console.log("after withdraw, user euroc bal is ", e_u_bal_1);
-        console.log("after withdraw, user usdc bal is ", u_u_bal_1);
+        // we cut 0.1 lpt per deposit, since looped 10000 times, token diff should be no less than 1000
+        assertApproxEqAbs(e_u_bal_0, e_u_bal_1, 1000 * 1e2);
+        assertApproxEqAbs(u_u_bal_0, u_u_bal_1, 1000 * 1e6);
+        assert(e_u_bal_0 > e_u_bal_1);
+        assert(u_u_bal_0 > u_u_bal_1);
     }
 
     // test euroc-usdc curve
@@ -218,15 +212,11 @@ contract V25Test is Test {
         );
         uint256 crvEurocBal_1 = euroc.balanceOf(address(eurocUsdcCurve));
         uint256 crvUsdcBal_1 = usdc.balanceOf(address(eurocUsdcCurve));
-        console.log("lp added, pool euroc balance is ", crvEurocBal_1);
-        console.log("lp added, pool usdc balance is ", crvUsdcBal_1);
         cheats.stopPrank();
         // now trade
         cheats.startPrank(address(accounts[1]));
         uint256 e_bal_0 = euroc.balanceOf(address(accounts[1]));
         uint256 u_bal_0 = usdc.balanceOf(address(accounts[1]));
-        console.log("before swap, user euroc balance is ", e_bal_0);
-        console.log("before swap, user usdc balance is ", u_bal_0);
         eurocUsdcCurve.originSwap(
             address(euroc),
             address(usdc),
@@ -236,23 +226,16 @@ contract V25Test is Test {
         );
         uint256 crvEurocBal_2 = euroc.balanceOf(address(eurocUsdcCurve));
         uint256 crvUsdcBal_2 = usdc.balanceOf(address(eurocUsdcCurve));
-        console.log(
-            "euroc to usdc swapped, pool euroc balance is ",
-            crvEurocBal_2
-        );
-        console.log(
-            "euroc to usdc swapped, pool usdc balance is ",
-            crvUsdcBal_2
-        );
 
         uint256 e_bal_1 = euroc.balanceOf(address(accounts[1]));
         uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
         cheats.stopPrank();
-        console.log("euroc to usdc swapped, user euroc balance is ", e_bal_1);
-        console.log("euroc to usdc swapped, user usdc balance is ", u_bal_1);
-        console.logString("swap diff, euroc & usdc");
-        console.log(e_bal_0 - e_bal_1);
-        console.log(u_bal_1 - u_bal_0);
+        // assume 1.05 USD <= 1 EUR <= 1.1 USD
+        assertApproxEqAbs(
+            (u_bal_1 - u_bal_0) / (e_bal_0 - e_bal_1) / 100,
+            105,
+            5
+        );
     }
 
     // test weth-usdc curve, usdc is a quote
@@ -285,15 +268,11 @@ contract V25Test is Test {
         );
         uint256 crvWethBal_1 = weth.balanceOf(address(wethUsdcCurve));
         uint256 crvUsdcBal_1 = usdc.balanceOf(address(wethUsdcCurve));
-        console.log("lp added, pool weth balance is ", crvWethBal_1);
-        console.log("lp added, pool usdc balance is ", crvUsdcBal_1);
         cheats.stopPrank();
         // now trade
         cheats.startPrank(address(accounts[1]));
         uint256 e_bal_0 = weth.balanceOf(address(accounts[1]));
         uint256 u_bal_0 = usdc.balanceOf(address(accounts[1]));
-        console.log("before swap, user weth balance is ", e_bal_0);
-        console.log("before swap, user usdc balance is ", u_bal_0);
         wethUsdcCurve.originSwap(
             address(weth),
             address(usdc),
@@ -303,23 +282,15 @@ contract V25Test is Test {
         );
         uint256 crvWethBal_2 = weth.balanceOf(address(wethUsdcCurve));
         uint256 crvUsdcBal_2 = usdc.balanceOf(address(wethUsdcCurve));
-        console.log(
-            "weth to usdc swapped, pool weth balance is ",
-            crvWethBal_2
-        );
-        console.log(
-            "weth to usdc swapped, pool usdc balance is ",
-            crvUsdcBal_2
-        );
-
         uint256 e_bal_1 = weth.balanceOf(address(accounts[1]));
         uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
         cheats.stopPrank();
-        console.log("weth to usdc swapped, user weth balance is ", e_bal_1);
-        console.log("weth to usdc swapped, user usdc balance is ", u_bal_1);
-        console.logString("swap diff, weth & usdc");
-        console.log(e_bal_0 - e_bal_1);
-        console.log(u_bal_1 - u_bal_0);
+        // assume $0.6 <= 1 matic <= $0.7
+        assertApproxEqAbs(
+            (u_bal_1 - u_bal_0) / ((e_bal_0 - e_bal_1) / (10 ** (18 - 6 + 2))),
+            65,
+            5
+        );
     }
 
     // test weth-usdc curve, usdc is a quote
@@ -351,10 +322,6 @@ contract V25Test is Test {
         cheats.startPrank(address(accounts[1]));
         uint256 e_bal_0 = (address(accounts[1])).balance;
         uint256 u_bal_0 = usdc.balanceOf(address(accounts[1]));
-        console.log("before swap, user eth balance is ", e_bal_0);
-        console.log("before swap, user usdc balance is ", u_bal_0);
-        console.logString("account 1 address is ");
-        console.log(address(accounts[1]));
         wethUsdcCurve.originSwapFromETH{value: 10 ether}(
             address(usdc),
             0,
@@ -362,17 +329,9 @@ contract V25Test is Test {
         );
         uint256 crvWethBal_2 = (address(wethUsdcCurve)).balance;
         uint256 crvUsdcBal_2 = usdc.balanceOf(address(wethUsdcCurve));
-        console.log("eth to usdc swapped, pool weth balance is ", crvWethBal_2);
-        console.log("eth to usdc swapped, pool usdc balance is ", crvUsdcBal_2);
-
         uint256 e_bal_1 = (address(accounts[1])).balance;
         uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
         cheats.stopPrank();
-        console.log("eth to usdc swapped, user weth balance is ", e_bal_1);
-        console.log("eth to usdc swapped, user usdc balance is ", u_bal_1);
-        console.logString("swap diff, eth & usdc");
-        console.log(e_bal_0 - e_bal_1);
-        console.log(u_bal_1 - u_bal_0);
         // now swap back to ETH using USDC balance
         cheats.startPrank(address(accounts[1]));
         wethUsdcCurve.originSwapToETH(
@@ -384,19 +343,20 @@ contract V25Test is Test {
         cheats.stopPrank();
         uint256 e_bal_2 = (address(accounts[1])).balance;
         uint256 u_bal_2 = usdc.balanceOf(address(accounts[1]));
-        console.log("usdc to eth swapped, user eth balance is ", e_bal_2);
-        console.log("usdc to eth swapped, user usdc balance is ", u_bal_2);
-        console.logString("swap diff, eth & usdc");
-        console.log(e_bal_2 - e_bal_1);
-        console.log(u_bal_1 - u_bal_2);
+        // assume $0.6 <= 1 matic <= $0.7
+        assertApproxEqAbs(
+            (u_bal_1 - u_bal_2) / ((e_bal_2 - e_bal_1) / (10 ** (18 - 6 + 2))),
+            65,
+            5
+        );
     }
 
-    // test weth-usdc curve, usdc is a quote
+    // test weth-link curve
     function testETHLinkCurve() public {
         // send ETH to lp provider and a trader
         cheats.startPrank(FAUCET);
-        payable(address(accounts[0])).call{value: 100 ether}("");
-        payable(address(accounts[1])).call{value: 100 ether}("");
+        payable(address(accounts[0])).call{value: 500 ether}("");
+        payable(address(accounts[1])).call{value: 10 ether}("");
         cheats.stopPrank();
         // approve from the provider side
         cheats.startPrank(address(accounts[1]));
@@ -405,8 +365,8 @@ contract V25Test is Test {
         cheats.stopPrank();
         // deposit from lp
         cheats.startPrank(address(accounts[0]));
-        wethLinkCurve.depositETH{value: 100 ether}(
-            100 * 1e18,
+        wethLinkCurve.depositETH{value: 500 ether}(
+            500 * 1e18,
             0,
             0,
             type(uint256).max,
@@ -415,21 +375,11 @@ contract V25Test is Test {
         );
         uint256 crvEthBal_1 = weth.balanceOf(address(wethLinkCurve));
         uint256 crvUsdcBal_1 = link.balanceOf(address(wethLinkCurve));
-        console.log(
-            "weth added to the pool by lp, pool weth balance is ",
-            crvEthBal_1
-        );
-        console.log(
-            "link added to the pool by lp, pool link balance is ",
-            crvUsdcBal_1
-        );
         cheats.stopPrank();
         // now trade
         cheats.startPrank(address(accounts[1]));
         uint256 e_bal_0 = (address(accounts[1])).balance;
         uint256 u_bal_0 = link.balanceOf(address(accounts[1]));
-        console.log("before swap, user eth balance is ", e_bal_0);
-        console.log("before swap, user link balance is ", u_bal_0);
         wethLinkCurve.originSwapFromETH{value: 10 ether}(
             address(link),
             0,
@@ -437,17 +387,10 @@ contract V25Test is Test {
         );
         uint256 crvWethBal_2 = weth.balanceOf(address(wethLinkCurve));
         uint256 crvUsdcBal_2 = link.balanceOf(address(wethLinkCurve));
-        console.log("eth to link swapped, pool weth balance is ", crvWethBal_2);
-        console.log("eth to link swapped, pool link balance is ", crvUsdcBal_2);
 
         uint256 e_bal_1 = weth.balanceOf(address(accounts[1]));
         uint256 u_bal_1 = link.balanceOf(address(accounts[1]));
         cheats.stopPrank();
-        console.log("eth to link swapped, user weth balance is ", e_bal_1);
-        console.log("eth to link swapped, user link balance is ", u_bal_1);
-        console.logString("swap diff, eth & usdc");
-        console.log(e_bal_0 - e_bal_1);
-        console.log(u_bal_1 - u_bal_0);
         // now swap back to ETH using USDC balance
         cheats.startPrank(address(accounts[1]));
         wethLinkCurve.originSwapToETH(
@@ -459,11 +402,59 @@ contract V25Test is Test {
         cheats.stopPrank();
         uint256 e_bal_2 = (address(accounts[1])).balance;
         uint256 u_bal_2 = link.balanceOf(address(accounts[1]));
-        console.log("link to eth swapped, user eth balance is ", e_bal_2);
-        console.log("link to eth swapped, user link balance is ", u_bal_2);
-        console.logString("swap diff, eth & link");
-        console.log(e_bal_2 - e_bal_1);
-        console.log(u_bal_1 - u_bal_2);
+        // assume 5 Matic <= 1 Link <= 7 Matic
+        assertApproxEqAbs((e_bal_2 - e_bal_1) / (u_bal_1 - u_bal_2), 6, 1);
+    }
+
+    // test weth-link curve withdraw in ETH
+    function testWithdrawETHLinkCurve() public {
+        // send ETH to lp provider and a trader
+        cheats.startPrank(FAUCET);
+        payable(address(accounts[0])).call{value: 100 ether}("");
+        payable(address(accounts[1])).call{value: 100 ether}("");
+        cheats.stopPrank();
+        // approve from the provider side
+        cheats.startPrank(address(accounts[1]));
+        weth.safeApprove(address(wethLinkCurve), type(uint256).max);
+        link.safeApprove(address(wethLinkCurve), type(uint256).max);
+        cheats.stopPrank();
+        // deposit from lp
+        uint256 u_link_0 = link.balanceOf((address(accounts[0])));
+        uint256 u_eth_0 = address(accounts[0]).balance;
+        uint256 u_weth_0 = weth.balanceOf((address(accounts[0])));
+        cheats.startPrank(address(accounts[0]));
+        wethLinkCurve.depositETH{value: 100 ether}(
+            100 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        uint256 crvEthBal_1 = weth.balanceOf(address(wethLinkCurve));
+        uint256 crvUsdcBal_1 = link.balanceOf(address(wethLinkCurve));
+        wethLinkCurve.withdrawETH(
+            IERC20Detailed(address(wethLinkCurve)).balanceOf(
+                address(accounts[0])
+            ) / 2,
+            block.timestamp + 60
+        );
+        wethLinkCurve.withdraw(
+            IERC20Detailed(address(wethLinkCurve)).balanceOf(
+                address(accounts[0])
+            ),
+            block.timestamp + 60
+        );
+        uint256 u_link_1 = link.balanceOf((address(accounts[0])));
+        uint256 u_eth_1 = address(accounts[0]).balance;
+        uint256 u_weth_1 = weth.balanceOf((address(accounts[0])));
+        cheats.stopPrank();
+        // link diff before deposit & after withdraw shoud be less than 1/1e8 LINK
+        assertApproxEqAbs(u_link_1, u_link_0, 1e10);
+        // sum of weth + eth diff before deposit & after withdraw shoud be less than 1e10 WEI
+        assertApproxEqAbs(u_eth_0 + u_weth_0, u_eth_1 + u_weth_1, 1e10);
+        // half of lp withdrawn as ETH, rest is withdrawn as WETH, diff of both withdrawn amounts should be less than 1e10 WEI
+        assertApproxEqAbs(u_weth_1 - u_weth_0, u_eth_0 - u_eth_1, 1e10);
     }
 
     // helper

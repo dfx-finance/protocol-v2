@@ -65,6 +65,10 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         return address(token);
     }
 
+    function getWeth() external view override returns (address) {
+        return wETH;
+    }
+
     function getRate() public view override returns (uint256) {
         (, int256 price, , , ) = oracle.latestRoundData();
         require(price >= 0, "invalid price oracle");
@@ -128,6 +132,15 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         int128 _amount
     ) external override returns (uint256 amount_) {
         uint256 _tokenBal = token.balanceOf(_addr);
+        // console.logInt(_amount);
+        // console.logString(
+        //     "token, balance, tokenBal, pairTokenBal, rate, amount "
+        // );
+        // console.log(_tokenBal);
+        // console.log(address(token));
+        // console.log(address(pairToken));
+        // console.log(tokenDecimals);
+        // console.log(pairTokenDecimals);
 
         if (_tokenBal <= 0) return 0;
 
@@ -137,15 +150,17 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
             _pairTokenWeight
         );
 
-        // Rate is in 1e6
+        // Rate is in pair token decimals
         uint256 _rate = _pairTokenBal.mul(10 ** tokenDecimals).div(_tokenBal);
 
         // amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
-
         amount_ =
             (_amount.mulu(10 ** tokenDecimals) * 10 ** pairTokenDecimals) /
             _rate;
+        if (tokenDecimals > pairTokenDecimals)
+            amount_ = amount_.mul(10 ** (tokenDecimals - pairTokenDecimals));
         amount_ = amount_.add(1);
+        // console.log(_tokenBal, _pairTokenBal, _rate, amount_);
         if (address(token) == address(pairToken)) {
             require(
                 amount_ >= _minpairTokenAmount &&
