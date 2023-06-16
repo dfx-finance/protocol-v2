@@ -32,6 +32,7 @@ import "./Storage.sol";
 import "./interfaces/IFreeFromUpTo.sol";
 import "./interfaces/ICurveFactory.sol";
 import "./interfaces/IAssimilator.sol";
+import "./interfaces/ICurve.sol";
 import "./Structs.sol";
 import "forge-std/Test.sol";
 
@@ -251,7 +252,7 @@ library Curves {
     }
 }
 
-contract Curve is Storage, NoDelegateCall {
+contract Curve is Storage, NoDelegateCall, ICurve {
     using SafeMath for uint256;
     using ABDKMath64x64 for int128;
     using SafeERC20 for IERC20;
@@ -547,7 +548,6 @@ contract Curve is Storage, NoDelegateCall {
         _swapData._recipient = msg.sender;
         _swapData._curveFactory = curveFactory;
         targetAmount_ = Swaps.originSwap(curve, _swapData, false);
-        // targetAmount_ = Swaps.originSwap(curve, _origin, _target, _originAmount, msg.sender,curveFactory);
 
         require(
             targetAmount_ >= _minTargetAmount,
@@ -907,6 +907,10 @@ contract Curve is Storage, NoDelegateCall {
                 curve,
                 _curvesToBurn
             );
+    }
+
+    function getWeth() external view override returns (address) {
+        return wETH;
     }
 
     function supportsInterface(

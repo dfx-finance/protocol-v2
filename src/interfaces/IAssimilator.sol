@@ -43,7 +43,7 @@ interface IAssimilator {
         uint256,
         address,
         int128
-    ) external returns (uint256);
+    ) external payable returns (uint256);
 
     function outputRaw(address dst, uint256 amount) external returns (int128);
 

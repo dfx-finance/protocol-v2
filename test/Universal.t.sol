@@ -61,6 +61,8 @@ contract V25Test is Test {
     CurveFactoryV2 curveFactory;
     AssimilatorFactory assimFactory;
 
+    Zap zap;
+
     address public constant FAUCET = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
 
     function setUp() public {
@@ -91,6 +93,8 @@ contract V25Test is Test {
             Polygon.WMATIC
         );
         assimFactory.setCurveFactory(address(curveFactory));
+        // deploy Zap
+        zap = new Zap();
         // now deploy curves
         eurocUsdcCurve = createCurve(
             "euroc-usdc",
@@ -455,6 +459,132 @@ contract V25Test is Test {
         assertApproxEqAbs(u_eth_0 + u_weth_0, u_eth_1 + u_weth_1, 1e10);
         // half of lp withdrawn as ETH, rest is withdrawn as WETH, diff of both withdrawn amounts should be less than 1e10 WEI
         assertApproxEqAbs(u_weth_1 - u_weth_0, u_eth_0 - u_eth_1, 1e10);
+    }
+
+    // test weth-link curve withdraw in ETH
+    function testLpActionETHLinkCurve() public {
+        // send ETH to lp provider and a trader
+        cheats.startPrank(FAUCET);
+        payable(address(accounts[0])).call{value: 1000 ether}("");
+        payable(address(accounts[1])).call{value: 100 ether}("");
+        cheats.stopPrank();
+        // mint some link tokens to account 1
+        deal(
+            address(link),
+            address(accounts[1]),
+            1000000 * decimals[address(link)]
+        );
+        // approve from the provider side
+        cheats.startPrank(address(accounts[1]));
+        weth.safeApprove(address(wethLinkCurve), type(uint256).max);
+        link.safeApprove(address(wethLinkCurve), type(uint256).max);
+        cheats.stopPrank();
+        // deposit from lp
+        cheats.startPrank(address(accounts[0]));
+        wethLinkCurve.depositETH{value: 1000 ether}(
+            300 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        cheats.startPrank(address(accounts[1]));
+        uint256 u_link_0 = link.balanceOf((address(accounts[1])));
+        uint256 u_eth_0 = address(accounts[1]).balance;
+        uint256 u_weth_0 = weth.balanceOf((address(accounts[1])));
+        wethLinkCurve.depositETH{value: 100 ether}(
+            30 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        uint256 u_link_1 = link.balanceOf((address(accounts[1])));
+        uint256 u_eth_1 = address(accounts[1]).balance;
+        uint256 u_weth_1 = weth.balanceOf((address(accounts[1])));
+        wethLinkCurve.withdrawETH(
+            IERC20Detailed(address(wethLinkCurve)).balanceOf(
+                address(accounts[1])
+            ),
+            block.timestamp + 60
+        );
+        uint256 u_link_2 = link.balanceOf((address(accounts[1])));
+        uint256 u_eth_2 = address(accounts[1]).balance;
+        uint256 u_weth_2 = weth.balanceOf((address(accounts[1])));
+        assertApproxEqAbs(u_link_2, u_link_0, u_link_0 / 1000);
+        assertApproxEqAbs(u_eth_2, u_eth_0, u_eth_0 / 1000);
+        cheats.stopPrank();
+    }
+
+    // test zap on weth/usdc pool
+    function testZapFromQuote() public {
+        uint256 amt = 1000;
+        // mint tokens to trader
+        deal(
+            address(usdc),
+            address(accounts[1]),
+            amt * decimals[address(usdc)]
+        );
+        cheats.startPrank(address(accounts[0]));
+        wethUsdcCurve.deposit(
+            1000000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        // pool token balances after lp deposit
+        uint256 crvWethBal_0 = weth.balanceOf(address(wethUsdcCurve));
+        uint256 crvUsdcBal_0 = usdc.balanceOf(address(wethUsdcCurve));
+        cheats.stopPrank();
+        // now zap
+        cheats.startPrank(address(accounts[1]));
+        weth.approve(address(wethUsdcCurve), type(uint256).max);
+        usdc.safeApprove(address(wethUsdcCurve), type(uint256).max);
+        weth.approve(address(zap), type(uint256).max);
+        usdc.safeApprove(address(zap), type(uint256).max);
+        uint256 u_u_bal_0 = usdc.balanceOf(address(accounts[1]));
+        uint256 u_w_bal_0 = weth.balanceOf(address(accounts[1]));
+        zap.zap(
+            address(wethUsdcCurve),
+            u_u_bal_0,
+            block.timestamp + 60,
+            0,
+            address(usdc)
+        );
+        uint256 userLPBalance = IERC20Detailed(address(wethUsdcCurve))
+            .balanceOf(address(accounts[1]));
+        // pool token balances after zap
+        uint256 crvWethBal_1 = weth.balanceOf(address(wethUsdcCurve));
+        uint256 crvUsdcBal_1 = usdc.balanceOf(address(wethUsdcCurve));
+        // user balances after zap
+        uint256 u_u_bal_1 = usdc.balanceOf(address(accounts[1]));
+        uint256 u_w_bal_1 = weth.balanceOf(address(accounts[1]));
+        // balance should be approx same in usd balance, assume wmatic ranges from $0.5 ~ $0.7
+        assertApproxEqAbs(
+            (u_u_bal_1) / (u_w_bal_1 / (10 ** (18 - 6 + 1))),
+            6,
+            1
+        );
+        wethUsdcCurve.withdraw(
+            IERC20Detailed(address(wethUsdcCurve)).balanceOf(
+                address(accounts[1])
+            ),
+            block.timestamp + 60
+        );
+        //user balances after lp withdraw
+        uint256 u_u_bal_2 = usdc.balanceOf(address(accounts[1]));
+        uint256 u_w_bal_2 = weth.balanceOf(address(accounts[1]));
+        cheats.stopPrank();
+        // assume $0.5 usdc <= 1 matic <= $0.7 usdc
+        assert(
+            u_u_bal_0 - u_u_bal_2 >= (u_w_bal_2 / 10 ** (18 - 6 + 2)) * 50 &&
+                u_u_bal_0 - u_u_bal_2 <= (u_w_bal_2 / 10 ** (18 - 6 + 2)) * 70
+        );
     }
 
     // helper

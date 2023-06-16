@@ -21,6 +21,9 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./Curve.sol";
 import "./interfaces/IERC20Detailed.sol";
+import "./interfaces/IWeth.sol";
+import "./interfaces/ICurve.sol";
+import "forge-std/Test.sol";
 
 contract Zap {
     using SafeMath for uint256;
@@ -50,26 +53,33 @@ contract Zap {
         uint256 _lpAmount,
         uint256 _deadline,
         uint256 _minTokenAmount,
-        address _token
+        address _token,
+        bool _toETH
     ) public returns (uint256) {
-        address _base = Curve(payable(_curve)).numeraires(0);
-        address _quote = Curve(payable(_curve)).numeraires(1);
-        IERC20Detailed quote = IERC20Detailed(_quote);
-        require(_token == _base || _token == _quote, "zap/token-not-supported");
-        bool isFromBase = _token == _base ? true : false;
+        address wETH = ICurve(_curve).getWeth();
+        IERC20Detailed base = IERC20Detailed(
+            Curve(payable(_curve)).numeraires(0)
+        );
+        IERC20Detailed quote = IERC20Detailed(
+            Curve(payable(_curve)).numeraires(1)
+        );
+        require(
+            _token == address(base) || _token == address(quote),
+            "zap/token-not-supported"
+        );
+        bool isFromBase = _token == address(base) ? true : false;
         IERC20Detailed(_curve).safeTransferFrom(
             msg.sender,
             address(this),
             _lpAmount
         );
         Curve(payable(_curve)).withdraw(_lpAmount, _deadline);
-        address base = Curve(payable(_curve)).reserves(0);
         if (isFromBase) {
-            uint256 baseAmount = IERC20Detailed(base).balanceOf(address(this));
-            IERC20Detailed(base).safeApprove(_curve, 0);
-            IERC20Detailed(base).safeApprove(_curve, type(uint256).max);
+            uint256 baseAmount = base.balanceOf(address(this));
+            base.safeApprove(_curve, 0);
+            base.safeApprove(_curve, type(uint256).max);
             Curve(payable(_curve)).originSwap(
-                base,
+                address(base),
                 address(quote),
                 baseAmount,
                 0,
@@ -80,7 +90,13 @@ contract Zap {
                 quoteAmount >= _minTokenAmount,
                 "!Unzap/not-enough-token-amount"
             );
-            quote.safeTransfer(msg.sender, quoteAmount);
+            if (address(quote) == wETH && _toETH) {
+                IWETH(wETH).withdraw(quoteAmount);
+                (bool success, ) = payable(msg.sender).call{value: quoteAmount}(
+                    ""
+                );
+                require(success, "zap/unzap-to-eth-failed");
+            } else quote.safeTransfer(msg.sender, quoteAmount);
             return quoteAmount;
         } else {
             uint256 quoteAmount = quote.balanceOf(address(this));
@@ -88,17 +104,23 @@ contract Zap {
             quote.safeApprove(_curve, type(uint256).max);
             Curve(payable(_curve)).originSwap(
                 address(quote),
-                base,
+                address(base),
                 quoteAmount,
                 0,
                 _deadline
             );
-            uint256 baseAmount = IERC20Detailed(base).balanceOf(address(this));
+            uint256 baseAmount = base.balanceOf(address(this));
             require(
                 baseAmount >= _minTokenAmount,
                 "!Unzap/not-enough-token-amount"
             );
-            IERC20Detailed(base).safeTransfer(msg.sender, baseAmount);
+            if (address(base) == wETH && _toETH) {
+                IWETH(wETH).withdraw(quoteAmount);
+                (bool success, ) = payable(msg.sender).call{value: baseAmount}(
+                    ""
+                );
+                require(success, "zap/unzap-to-eth-failed");
+            } else base.safeTransfer(msg.sender, baseAmount);
             return baseAmount;
         }
     }
@@ -152,6 +174,61 @@ contract Zap {
                 swapAmount,
                 _deadline,
                 _zapAmount
+            );
+        return zap_(_curve, base, quote, _deadline, _minLPAmount);
+    }
+
+    function zapETH(
+        address _curve,
+        uint256 _deadline,
+        uint256 _minLPAmount
+    ) public payable returns (uint256) {
+        require(msg.value > 0, "zap/zap-amount-is-zero");
+        // token is weth, zapAmount is msg.value - coming eth amount
+        address _token = ICurve(_curve).getWeth();
+        // first convert coming ETH to WETH & send wrapped amount to user back
+        IWETH(_token).deposit{value: msg.value}();
+        IERC20Detailed(_token).safeTransferFrom(
+            address(this),
+            msg.sender,
+            msg.value
+        );
+
+        IERC20Detailed base = IERC20Detailed(
+            Curve(payable(_curve)).numeraires(0)
+        );
+        IERC20Detailed quote = IERC20Detailed(
+            Curve(payable(_curve)).numeraires(1)
+        );
+        require(
+            _token == address(base) || _token == address(quote),
+            "zap/token-not-supported"
+        );
+        bool isFromBase = _token == address(base) ? true : false;
+        (, uint256 swapAmount) = calcSwapAmountForZap(
+            _curve,
+            msg.value,
+            isFromBase
+        );
+
+        // Swap on curve
+        if (isFromBase)
+            _zapFromBase(
+                _curve,
+                base,
+                address(quote),
+                swapAmount,
+                _deadline,
+                msg.value
+            );
+        else
+            _zapFromQuote(
+                _curve,
+                address(base),
+                quote,
+                swapAmount,
+                _deadline,
+                msg.value
             );
         return zap_(_curve, base, quote, _deadline, _minLPAmount);
     }
@@ -234,12 +311,12 @@ contract Zap {
             _deadline
         );
         require(lpAmount >= _minLPAmount, "!Zap/not-enough-lp-amount");
-
-        // Transfer all remaining balances back to user
+        // send lp to user
         IERC20Detailed(_curve).safeTransfer(
             msg.sender,
             IERC20Detailed(_curve).balanceOf(address(this))
         );
+        // Transfer all remaining balances back to user
         _base.safeTransfer(msg.sender, _base.balanceOf(address(this)));
         _quote.safeTransfer(msg.sender, _quote.balanceOf(address(this)));
 

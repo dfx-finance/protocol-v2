@@ -130,37 +130,25 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         uint256 _maxpairTokenAmount,
         address _addr,
         int128 _amount
-    ) external override returns (uint256 amount_) {
+    ) external payable override returns (uint256 amount_) {
         uint256 _tokenBal = token.balanceOf(_addr);
-        // console.logInt(_amount);
-        // console.logString(
-        //     "token, balance, tokenBal, pairTokenBal, rate, amount "
-        // );
-        // console.log(_tokenBal);
-        // console.log(address(token));
-        // console.log(address(pairToken));
-        // console.log(tokenDecimals);
-        // console.log(pairTokenDecimals);
 
         if (_tokenBal <= 0) return 0;
 
-        _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
-
-        uint256 _pairTokenBal = pairToken.balanceOf(_addr).mul(1e18).div(
-            _pairTokenWeight
+        _tokenBal = _tokenBal.mul(10 ** (18 + pairTokenDecimals)).div(
+            _baseWeight
         );
 
-        // Rate is in pair token decimals
-        uint256 _rate = _pairTokenBal.mul(10 ** tokenDecimals).div(_tokenBal);
+        uint256 _pairTokenBal = pairToken
+            .balanceOf(_addr)
+            .mul(10 ** (18 + tokenDecimals))
+            .div(_pairTokenWeight);
 
-        // amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
-        amount_ =
-            (_amount.mulu(10 ** tokenDecimals) * 10 ** pairTokenDecimals) /
-            _rate;
-        if (tokenDecimals > pairTokenDecimals)
-            amount_ = amount_.mul(10 ** (tokenDecimals - pairTokenDecimals));
+        // Rate is in pair token decimals
+        uint256 _rate = _pairTokenBal.mul(1e6).div(_tokenBal);
+
+        amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
         amount_ = amount_.add(1);
-        // console.log(_tokenBal, _pairTokenBal, _rate, amount_);
         if (address(token) == address(pairToken)) {
             require(
                 amount_ >= _minpairTokenAmount &&
@@ -334,7 +322,9 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
             _tokenBal.mul(1e18).div(_baseWeight)
         );
 
-        balance_ = ((_tokenBal * _rate) / 1e6).divu(1e18);
+        // balance_ = ((_tokenBal * _rate) / 1e6).divu(1e18);
+
+        balance_ = ((_tokenBal * _rate) / 10 ** pairTokenDecimals).divu(1e18);
     }
 
     function transferFee(
