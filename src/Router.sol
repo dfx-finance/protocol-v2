@@ -128,7 +128,7 @@ contract Router {
         uint256 _deadline
     ) public payable returns (uint256 targetAmount_) {
         // wrap ETH to WETH
-        IWETH(_wETH).deposit{value: msg.value}("");
+        IWETH(_wETH).deposit{value: msg.value}();
         uint256 pathLen = _path.length;
         address origin = _path[0];
         require(origin == _wETH, "router/invalid-path");
@@ -238,4 +238,6 @@ contract Router {
 
         revert("Router/No-path");
     }
+
+    receive() external payable {}
 }

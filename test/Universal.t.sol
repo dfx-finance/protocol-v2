@@ -13,6 +13,7 @@ import "../src/CurveFactoryV2.sol";
 import "../src/Curve.sol";
 import "../src/Config.sol";
 import "../src/Structs.sol";
+import "../src/Router.sol";
 import "../src/Zap.sol";
 import "../src/lib/ABDKMath64x64.sol";
 
@@ -63,6 +64,8 @@ contract V25Test is Test {
 
     Zap zap;
 
+    Router router;
+
     address public constant FAUCET = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
 
     function setUp() public {
@@ -95,6 +98,8 @@ contract V25Test is Test {
         assimFactory.setCurveFactory(address(curveFactory));
         // deploy Zap
         zap = new Zap();
+        // now deploy router
+        router = new Router(address(curveFactory));
         // now deploy curves
         eurocUsdcCurve = createCurve(
             "euroc-usdc",
@@ -585,6 +590,138 @@ contract V25Test is Test {
             u_u_bal_0 - u_u_bal_2 >= (u_w_bal_2 / 10 ** (18 - 6 + 2)) * 50 &&
                 u_u_bal_0 - u_u_bal_2 <= (u_w_bal_2 / 10 ** (18 - 6 + 2)) * 70
         );
+    }
+
+    // test routing EURS -> Link (eurs -> usdc -> weth -> link)
+    function testRouting() public {
+        // mint all tokens to depositor
+        cheats.startPrank(FAUCET);
+        payable(address(accounts[0])).call{value: 5000 ether}("");
+        cheats.stopPrank();
+        // mint eurs to the trader
+        deal(
+            address(euroc),
+            address(accounts[1]),
+            10000 * decimals[address(euroc)]
+        );
+        uint256 u_e_bal_0 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_l_bal_0 = link.balanceOf(address(accounts[1]));
+        // now approve router to spend euroc
+        cheats.startPrank(address(accounts[1]));
+        euroc.safeApprove(address(router), type(uint256).max);
+        cheats.stopPrank();
+        // lp depositor provide lps to pools
+        cheats.startPrank(address(accounts[0]));
+        eurocUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethLinkCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        // init a path
+        address[] memory _path = new address[](4);
+        _path[0] = address(euroc);
+        _path[1] = address(usdc);
+        _path[2] = address(weth);
+        _path[3] = address(link);
+        // now swap using router
+        cheats.startPrank(address(accounts[1]));
+        router.originSwap(u_e_bal_0, 0, _path, block.timestamp + 60);
+        cheats.stopPrank();
+        uint256 u_e_bal_1 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_l_bal_1 = link.balanceOf(address(accounts[1]));
+        // assume euroc is $1~$1.1, link is $5 ~ $5.5
+        uint256 eurocInUsdMin = (u_e_bal_0 / (10 ** (2 + 1))) * 10;
+        uint256 eurocInUsdMax = (u_e_bal_0 / (10 ** (2 + 1))) * 11;
+        uint256 linkInUsdMin = (u_l_bal_1 / 1e18) * 5;
+        uint256 linkInUsdMax = (u_l_bal_1 / 1e19) * 55;
+        assertApproxEqAbs(eurocInUsdMin, linkInUsdMin, linkInUsdMin / 20);
+        assertApproxEqAbs(eurocInUsdMax, linkInUsdMax, linkInUsdMax / 20);
+    }
+
+    // test routing EURS -> WETH (eurs -> usdc -> weth -> eth)
+    function testRoutingToETH() public {
+        // mint all tokens to depositor
+        cheats.startPrank(FAUCET);
+        payable(address(accounts[0])).call{value: 5000 ether}("");
+        payable(address(accounts[0])).call{value: 1000 ether}("");
+        cheats.stopPrank();
+        // mint token to the trader
+        deal(
+            address(euroc),
+            address(accounts[1]),
+            100 * decimals[address(euroc)]
+        );
+        uint256 u_e_bal_0 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_eth_bal_0 = address(accounts[1]).balance;
+        // now approve router to spend euroc
+        cheats.startPrank(address(accounts[1]));
+        euroc.safeApprove(address(router), type(uint256).max);
+        cheats.stopPrank();
+        // lp depositor provide lps to pools
+        cheats.startPrank(address(accounts[0]));
+        eurocUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethLinkCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        // init a path
+        address[] memory _path = new address[](3);
+        _path[0] = address(euroc);
+        _path[1] = address(usdc);
+        _path[2] = address(weth);
+        // now swap using router
+        cheats.startPrank(address(accounts[1]));
+        router.originSwapToETH(u_e_bal_0, 0, _path, block.timestamp + 60);
+        cheats.stopPrank();
+        uint256 u_e_bal_1 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_eth_bal_1 = address(accounts[1]).balance;
+        // assume euroc is $1~$1.1, matic is $0.6 ~ $0.7
+        uint256 eurocInUsdMin = (u_e_bal_0 / (10 ** (2 + 1))) * 10;
+        uint256 eurocInUsdMax = (u_e_bal_0 / (10 ** (2 + 1))) * 11;
+        uint256 maticInUsdMin = (u_eth_bal_1 / 1e19) * 6;
+        uint256 maticInUsdMax = (u_eth_bal_1 / 1e19) * 7;
+        assertApproxEqAbs(eurocInUsdMin, maticInUsdMin, maticInUsdMin / 20);
+        assertApproxEqAbs(eurocInUsdMax, maticInUsdMax, maticInUsdMax / 20);
     }
 
     // helper
