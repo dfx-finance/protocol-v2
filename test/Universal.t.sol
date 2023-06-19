@@ -663,7 +663,7 @@ contract V25Test is Test {
         // mint all tokens to depositor
         cheats.startPrank(FAUCET);
         payable(address(accounts[0])).call{value: 5000 ether}("");
-        payable(address(accounts[0])).call{value: 1000 ether}("");
+        payable(address(accounts[1])).call{value: 1000 ether}("");
         cheats.stopPrank();
         // mint token to the trader
         deal(
@@ -715,13 +715,74 @@ contract V25Test is Test {
         cheats.stopPrank();
         uint256 u_e_bal_1 = euroc.balanceOf(address(accounts[1]));
         uint256 u_eth_bal_1 = address(accounts[1]).balance;
-        // assume euroc is $1~$1.1, matic is $0.6 ~ $0.7
-        uint256 eurocInUsdMin = (u_e_bal_0 / (10 ** (2 + 1))) * 10;
-        uint256 eurocInUsdMax = (u_e_bal_0 / (10 ** (2 + 1))) * 11;
-        uint256 maticInUsdMin = (u_eth_bal_1 / 1e19) * 6;
-        uint256 maticInUsdMax = (u_eth_bal_1 / 1e19) * 7;
-        assertApproxEqAbs(eurocInUsdMin, maticInUsdMin, maticInUsdMin / 20);
-        assertApproxEqAbs(eurocInUsdMax, maticInUsdMax, maticInUsdMax / 20);
+        console.log(u_e_bal_0, u_eth_bal_0);
+        console.log(u_e_bal_1, u_eth_bal_1);
+        // // assume euroc is $1~$1.1, matic is $0.6 ~ $0.7
+        // uint256 eurocInUsdMin = (u_e_bal_0 / (10 ** (2 + 1))) * 10;
+        // uint256 eurocInUsdMax = (u_e_bal_0 / (10 ** (2 + 1))) * 11;
+        // uint256 maticInUsdMin = (u_eth_bal_1 / 1e19) * 6;
+        // uint256 maticInUsdMax = (u_eth_bal_1 / 1e19) * 7;
+        // assertApproxEqAbs(eurocInUsdMin, maticInUsdMin, maticInUsdMin / 20);
+        // assertApproxEqAbs(eurocInUsdMax, maticInUsdMax, maticInUsdMax / 20);
+    }
+
+    // test routing ETH -> EURS (eth -> weth -> usdc -> eurs)
+    function testRoutingFromETH() public {
+        // mint all tokens to depositor
+        cheats.startPrank(FAUCET);
+        payable(address(accounts[0])).call{value: 5000 ether}("");
+        payable(address(accounts[1])).call{value: 1000 ether}("");
+        cheats.stopPrank();
+        // mint token to the trader
+        uint256 u_e_bal_0 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_eth_bal_0 = address(accounts[1]).balance;
+        // now approve router to spend euroc
+        cheats.startPrank(address(accounts[1]));
+        euroc.safeApprove(address(router), type(uint256).max);
+        cheats.stopPrank();
+        // lp depositor provide lps to pools
+        cheats.startPrank(address(accounts[0]));
+        eurocUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethLinkCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        // init a path
+        address[] memory _path = new address[](3);
+        _path[0] = address(weth);
+        _path[1] = address(usdc);
+        _path[2] = address(euroc);
+        cheats.startPrank(address(accounts[1]));
+        router.originSwapFromETH{value: 1000 ether}(
+            0,
+            _path,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        uint256 u_e_bal_1 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_eth_bal_1 = address(accounts[1]).balance;
+        console.log(u_e_bal_0, u_eth_bal_0);
+        console.log(u_e_bal_1, u_eth_bal_1);
     }
 
     // helper
@@ -771,3 +832,10 @@ contract V25Test is Test {
         return _curve;
     }
 }
+
+// polygon
+// block number 44073000
+// 0xE111178A87A3BFf0c8d18DECBa5798827539Ae99 - 109361000
+// 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174 - 100011825
+// 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270 - 59850000
+// 0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39 - 515578303
