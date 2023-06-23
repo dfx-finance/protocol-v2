@@ -39,52 +39,31 @@ contract Router {
     }
 
     /// @notice view how much target amount a fixed origin amount will swap for
-    /// @param _quoteCurrency the address of the quote currency (usually USDC)
-    /// @param _origin the address of the origin
-    /// @param _target the address of the target
+    /// @param _path the path to swap from origin to target
     /// @param _originAmount the origin amount
     /// @return targetAmount_ the amount of target that will be returned
     function viewOriginSwap(
-        address _quoteCurrency,
-        address _origin,
-        address _target,
+        address[] memory _path,
         uint256 _originAmount
     ) external view returns (uint256 targetAmount_) {
-        // If its an immediate pair then just swap directly on it
-        address payable curve0 = CurveFactoryV2(factory).getCurve(
-            _origin,
-            _target
-        );
-        if (_origin == _quoteCurrency) {
-            curve0 = CurveFactoryV2(factory).getCurve(_target, _origin);
-        }
-        if (curve0 != address(0)) {
-            targetAmount_ = Curve(curve0).viewOriginSwap(
-                _origin,
-                _target,
-                _originAmount
+        uint256 pathLen = _path.length;
+        for (uint i = 0; i < pathLen; ++i) {
+            address payable curve = CurveFactoryV2(factory).getCurve(
+                _path[i],
+                _path[i + 1]
             );
-            return targetAmount_;
-        }
-
-        // Otherwise go through the quote currency
-        curve0 = CurveFactoryV2(factory).getCurve(_origin, _quoteCurrency);
-        address payable curve1 = CurveFactoryV2(factory).getCurve(
-            _target,
-            _quoteCurrency
-        );
-        if (curve0 != address(0) && curve1 != address(0)) {
-            uint256 _quoteAmount = Curve(curve0).viewOriginSwap(
-                _origin,
-                _quoteCurrency,
-                _originAmount
-            );
-            targetAmount_ = Curve(curve1).viewOriginSwap(
-                _quoteCurrency,
-                _target,
-                _quoteAmount
-            );
-            return targetAmount_;
+            if (i == 0)
+                targetAmount_ = Curve(curve).viewOriginSwap(
+                    _path[i],
+                    _path[i + 1],
+                    _originAmount
+                );
+            else
+                targetAmount_ = Curve(curve).viewOriginSwap(
+                    _path[i],
+                    _path[i + 1],
+                    targetAmount_
+                );
         }
 
         revert("Router/No-path");
@@ -119,6 +98,7 @@ contract Router {
                 _deadline
             );
         }
+        require(targetAmount_ >= _minTargetAmount, "Router/originswap-failure");
         IERC20(target).safeTransfer(msg.sender, targetAmount_);
     }
 
