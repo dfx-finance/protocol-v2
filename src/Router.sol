@@ -47,7 +47,7 @@ contract Router {
         uint256 _originAmount
     ) external view returns (uint256 targetAmount_) {
         uint256 pathLen = _path.length;
-        for (uint i = 0; i < pathLen; ++i) {
+        for (uint i = 0; i < pathLen - 1; ++i) {
             address payable curve = CurveFactoryV2(factory).getCurve(
                 _path[i],
                 _path[i + 1]
@@ -66,7 +66,7 @@ contract Router {
                 );
         }
 
-        revert("Router/No-path");
+        // revert("Router/No-path");
     }
 
     function originSwap(

@@ -737,7 +737,7 @@ contract V25Test is Test {
         assertApproxEqAbs(eurocInUsd, ethInUsd, eurocInUsd / 100);
     }
 
-    // test routing ETH -> EURS (eth -> weth -> usdc -> eurs)
+    // test view origin swap through rouing  ETH -> EURS (eth -> weth -> usdc -> eurs)
     function testRoutingFromETH() public {
         // mint all tokens to depositor
         cheats.startPrank(FAUCET);
@@ -798,6 +798,64 @@ contract V25Test is Test {
         uint256 ethInUsd = (ethDiff / 1e12) * wethPrice;
         uint256 eurocInUsd = eurocDiff * 1e4 * eurocPrice;
         assertApproxEqAbs(eurocInUsd, ethInUsd, eurocInUsd / 100);
+    }
+
+    // test viewOriginSwap on Router :  EURS -> Link (eurs -> usdc -> weth -> link)
+    function testViewOriginSwapOnRouter() public {
+        // mint all tokens to depositor
+        cheats.startPrank(FAUCET);
+        payable(address(accounts[0])).call{value: 5000 ether}("");
+        cheats.stopPrank();
+        // mint eurs to the trader
+        deal(
+            address(euroc),
+            address(accounts[1]),
+            10000 * decimals[address(euroc)]
+        );
+        uint256 u_e_bal_0 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_l_bal_0 = link.balanceOf(address(accounts[1]));
+        // now approve router to spend euroc
+        cheats.startPrank(address(accounts[1]));
+        euroc.safeApprove(address(router), type(uint256).max);
+        cheats.stopPrank();
+        // lp depositor provide lps to pools
+        cheats.startPrank(address(accounts[0]));
+        eurocUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethLinkCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        // init a path
+        address[] memory _path = new address[](4);
+        _path[0] = address(euroc);
+        _path[1] = address(usdc);
+        _path[2] = address(weth);
+        _path[3] = address(link);
+        // now swap using router
+        uint256 targetAmount = router.viewOriginSwap(_path, u_e_bal_0);
+        uint256 eurocInUsd = (u_e_bal_0 * eurocPrice) / 1e8;
+        uint256 linkInUsd = (targetAmount * linkPrice) / 1e8 / (10 ** (18 - 2));
+        assertApproxEqAbs(eurocInUsd, linkInUsd, eurocInUsd / 100);
     }
 
     // helper
