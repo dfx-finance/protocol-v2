@@ -21,4 +21,6 @@ interface ICurveFactory {
     function assimilatorFactory() external view returns (IAssimilatorFactory);
 
     function wETH() external view returns (address);
+
+    function isDFXCurve(address) external view returns (bool);
 }

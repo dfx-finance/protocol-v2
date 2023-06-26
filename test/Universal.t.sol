@@ -111,7 +111,7 @@ contract V25Test is Test {
         );
         assimFactory.setCurveFactory(address(curveFactory));
         // deploy Zap
-        zap = new Zap();
+        zap = new Zap(address(curveFactory));
         // now deploy router
         router = new Router(address(curveFactory));
         // now deploy curves
@@ -141,8 +141,6 @@ contract V25Test is Test {
     // test euroc-usdc curve
     function testEurocDrain() public {
         uint256 amt = 10000000;
-        uint256 _minQuoteAmount = 14121276011;
-        uint256 _minBaseAmount = 39560427884641868524167;
         uint256 _maxQuoteAmount = 2852783032400000000000;
         uint256 _maxBaseAmount = 7992005633260983540235600000000;
         // mint tokens to attacker
@@ -170,8 +168,6 @@ contract V25Test is Test {
             type(uint256).max,
             block.timestamp + 60
         );
-        uint256 crvEurocBal_1 = euroc.balanceOf(address(eurocUsdcCurve));
-        uint256 crvUsdcBal_1 = usdc.balanceOf(address(eurocUsdcCurve));
         cheats.stopPrank();
         // account 1 is an attacker
 
@@ -189,8 +185,6 @@ contract V25Test is Test {
                 block.timestamp + 60
             );
         }
-        uint256 crvEurocBal_2 = euroc.balanceOf(address(eurocUsdcCurve));
-        uint256 crvUsdcBal_2 = usdc.balanceOf(address(eurocUsdcCurve));
         eurocUsdcCurve.withdraw(
             eurocUsdcCurve.balanceOf(address(accounts[1])),
             block.timestamp + 60
@@ -233,8 +227,6 @@ contract V25Test is Test {
             type(uint256).max,
             block.timestamp + 60
         );
-        uint256 crvEurocBal_1 = euroc.balanceOf(address(eurocUsdcCurve));
-        uint256 crvUsdcBal_1 = usdc.balanceOf(address(eurocUsdcCurve));
         cheats.stopPrank();
         // now trade
         cheats.startPrank(address(accounts[1]));
@@ -247,8 +239,6 @@ contract V25Test is Test {
             0,
             block.timestamp + 60
         );
-        uint256 crvEurocBal_2 = euroc.balanceOf(address(eurocUsdcCurve));
-        uint256 crvUsdcBal_2 = usdc.balanceOf(address(eurocUsdcCurve));
 
         uint256 e_bal_1 = euroc.balanceOf(address(accounts[1]));
         uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
@@ -289,8 +279,6 @@ contract V25Test is Test {
             type(uint256).max,
             block.timestamp + 60
         );
-        uint256 crvWethBal_1 = weth.balanceOf(address(wethUsdcCurve));
-        uint256 crvUsdcBal_1 = usdc.balanceOf(address(wethUsdcCurve));
         cheats.stopPrank();
         // now trade
         cheats.startPrank(address(accounts[1]));
@@ -303,8 +291,6 @@ contract V25Test is Test {
             0,
             block.timestamp + 60
         );
-        uint256 crvWethBal_2 = weth.balanceOf(address(wethUsdcCurve));
-        uint256 crvUsdcBal_2 = usdc.balanceOf(address(wethUsdcCurve));
         uint256 e_bal_1 = weth.balanceOf(address(accounts[1]));
         uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
         cheats.stopPrank();
@@ -338,20 +324,14 @@ contract V25Test is Test {
             type(uint256).max,
             block.timestamp + 60
         );
-        uint256 crvEthBal_1 = (address(wethUsdcCurve)).balance;
-        uint256 crvUsdcBal_1 = usdc.balanceOf(address(wethUsdcCurve));
         cheats.stopPrank();
         // now trade
         cheats.startPrank(address(accounts[1]));
-        uint256 e_bal_0 = (address(accounts[1])).balance;
-        uint256 u_bal_0 = usdc.balanceOf(address(accounts[1]));
         wethUsdcCurve.originSwapFromETH{value: 10 ether}(
             address(usdc),
             0,
             block.timestamp + 60
         );
-        uint256 crvWethBal_2 = (address(wethUsdcCurve)).balance;
-        uint256 crvUsdcBal_2 = usdc.balanceOf(address(wethUsdcCurve));
         uint256 e_bal_1 = (address(accounts[1])).balance;
         uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
         cheats.stopPrank();
@@ -396,20 +376,14 @@ contract V25Test is Test {
             type(uint256).max,
             block.timestamp + 60
         );
-        uint256 crvEthBal_1 = weth.balanceOf(address(wethLinkCurve));
-        uint256 crvUsdcBal_1 = link.balanceOf(address(wethLinkCurve));
         cheats.stopPrank();
         // now trade
         cheats.startPrank(address(accounts[1]));
-        uint256 e_bal_0 = (address(accounts[1])).balance;
-        uint256 u_bal_0 = link.balanceOf(address(accounts[1]));
         wethLinkCurve.originSwapFromETH{value: 10 ether}(
             address(link),
             0,
             block.timestamp + 60
         );
-        uint256 crvWethBal_2 = weth.balanceOf(address(wethLinkCurve));
-        uint256 crvUsdcBal_2 = link.balanceOf(address(wethLinkCurve));
 
         uint256 e_bal_1 = weth.balanceOf(address(accounts[1]));
         uint256 u_bal_1 = link.balanceOf(address(accounts[1]));
@@ -458,8 +432,6 @@ contract V25Test is Test {
             type(uint256).max,
             block.timestamp + 60
         );
-        uint256 crvEthBal_1 = weth.balanceOf(address(wethLinkCurve));
-        uint256 crvUsdcBal_1 = link.balanceOf(address(wethLinkCurve));
         wethLinkCurve.withdrawETH(
             IERC20Detailed(address(wethLinkCurve)).balanceOf(
                 address(accounts[0])
@@ -516,7 +488,6 @@ contract V25Test is Test {
         cheats.startPrank(address(accounts[1]));
         uint256 u_link_0 = link.balanceOf((address(accounts[1])));
         uint256 u_eth_0 = address(accounts[1]).balance;
-        uint256 u_weth_0 = weth.balanceOf((address(accounts[1])));
         wethLinkCurve.depositETH{value: 100 ether}(
             30 * 1e18,
             0,
@@ -525,9 +496,6 @@ contract V25Test is Test {
             type(uint256).max,
             block.timestamp + 60
         );
-        uint256 u_link_1 = link.balanceOf((address(accounts[1])));
-        uint256 u_eth_1 = address(accounts[1]).balance;
-        uint256 u_weth_1 = weth.balanceOf((address(accounts[1])));
         wethLinkCurve.withdrawETH(
             IERC20Detailed(address(wethLinkCurve)).balanceOf(
                 address(accounts[1])
@@ -536,7 +504,6 @@ contract V25Test is Test {
         );
         uint256 u_link_2 = link.balanceOf((address(accounts[1])));
         uint256 u_eth_2 = address(accounts[1]).balance;
-        uint256 u_weth_2 = weth.balanceOf((address(accounts[1])));
         assertApproxEqAbs(u_link_2, u_link_0, u_link_0 / 1000);
         assertApproxEqAbs(u_eth_2, u_eth_0, u_eth_0 / 1000);
         cheats.stopPrank();
@@ -560,9 +527,6 @@ contract V25Test is Test {
             type(uint256).max,
             block.timestamp + 60
         );
-        // pool token balances after lp deposit
-        uint256 crvWethBal_0 = weth.balanceOf(address(wethUsdcCurve));
-        uint256 crvUsdcBal_0 = usdc.balanceOf(address(wethUsdcCurve));
         cheats.stopPrank();
         // now zap
         cheats.startPrank(address(accounts[1]));
@@ -571,7 +535,6 @@ contract V25Test is Test {
         weth.approve(address(zap), type(uint256).max);
         usdc.safeApprove(address(zap), type(uint256).max);
         uint256 u_u_bal_0 = usdc.balanceOf(address(accounts[1]));
-        uint256 u_w_bal_0 = weth.balanceOf(address(accounts[1]));
         zap.zap(
             address(wethUsdcCurve),
             u_u_bal_0,
@@ -579,11 +542,6 @@ contract V25Test is Test {
             0,
             address(usdc)
         );
-        uint256 userLPBalance = IERC20Detailed(address(wethUsdcCurve))
-            .balanceOf(address(accounts[1]));
-        // pool token balances after zap
-        uint256 crvWethBal_1 = weth.balanceOf(address(wethUsdcCurve));
-        uint256 crvUsdcBal_1 = usdc.balanceOf(address(wethUsdcCurve));
         // user balances after zap
         uint256 u_u_bal_1 = usdc.balanceOf(address(accounts[1]));
         uint256 u_w_bal_1 = weth.balanceOf(address(accounts[1]));
@@ -608,6 +566,13 @@ contract V25Test is Test {
             u_u_bal_0 - u_u_bal_2 >= (u_w_bal_2 / 10 ** (18 - 6 + 2)) * 50 &&
                 u_u_bal_0 - u_u_bal_2 <= (u_w_bal_2 / 10 ** (18 - 6 + 2)) * 70
         );
+    }
+
+    // test zap on weth/usdc pool
+    function testFailZappingUsingNonDFXCurve() public {
+        cheats.startPrank(address(accounts[1]));
+        zap.zap(address(euroc), 100, block.timestamp + 60, 0, address(usdc));
+        cheats.stopPrank();
     }
 
     // test routing EURS -> Link (eurs -> usdc -> weth -> link)

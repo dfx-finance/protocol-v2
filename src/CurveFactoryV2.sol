@@ -45,6 +45,8 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
 
     mapping(bytes32 => address) public curves;
 
+    mapping(address => bool) public isDFXCurve;
+
     address public immutable wETH;
 
     constructor(address _assimFactory, address _config, address _weth) {
@@ -125,12 +127,6 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         uint256 quoteDec = IERC20Detailed(_info._quoteCurrency).decimals();
         uint256 baseDec = IERC20Detailed(_info._baseCurrency).decimals();
 
-        // bytes32 curveId = keccak256(
-        //     abi.encode(_info._baseCurrency, _info._quoteCurrency)
-        // );
-        // bytes32 curveIdReversed = keccak256(
-        //     abi.encode(_info._quoteCurrency, _info._baseCurrency)
-        // );
         CurveIDPair memory idPair = generateCurveID(
             _info._baseCurrency,
             _info._quoteCurrency
@@ -168,10 +164,6 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
                 _info._quoteCurrency,
                 quoteDec
             );
-        // _info._quoteCurrency,
-        // _info._quoteOracle,
-        // _info._quoteCurrency,
-        // quoteDec
 
         address[] memory _assets = new address[](10);
         uint256[] memory _assetWeights = new uint256[](2);
@@ -212,6 +204,7 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         curve.transferOwnership(getProtocolTreasury());
         curves[idPair.curveId] = address(curve);
         curves[idPair.curveIdReversed] = address(curve);
+        isDFXCurve[address(curve)] = true;
 
         emit NewCurve(msg.sender, idPair.curveId, address(curve));
 

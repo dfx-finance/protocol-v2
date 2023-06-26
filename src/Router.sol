@@ -65,8 +65,6 @@ contract Router {
                     targetAmount_
                 );
         }
-
-        // revert("Router/No-path");
     }
 
     function originSwap(
@@ -128,6 +126,10 @@ contract Router {
                 _deadline
             );
         }
+        require(
+            targetAmount_ >= _minTargetAmount,
+            "Router/originswap-from-ETH-failure"
+        );
         IERC20(target).safeTransfer(msg.sender, targetAmount_);
     }
 
@@ -161,6 +163,10 @@ contract Router {
                 _deadline
             );
         }
+        require(
+            targetAmount_ >= _minTargetAmount,
+            "Router/originswap-to-ETH-failure"
+        );
         IWETH(_wETH).withdraw(targetAmount_);
         (bool success, ) = payable(msg.sender).call{value: targetAmount_}("");
         require(success, "router/eth-tranfer-failed");

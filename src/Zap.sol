@@ -23,6 +23,7 @@ import "./Curve.sol";
 import "./interfaces/IERC20Detailed.sol";
 import "./interfaces/IWeth.sol";
 import "./interfaces/ICurve.sol";
+import "./interfaces/ICurveFactory.sol";
 import "forge-std/Test.sol";
 
 contract Zap {
@@ -46,7 +47,16 @@ contract Zap {
         uint256 maxQuoteAmount;
     }
 
-    constructor() {}
+    ICurveFactory public immutable curveFactory;
+
+    modifier isDFXCurve(address _curve) {
+        require(curveFactory.isDFXCurve(_curve), "zap/invalid-curve");
+        _;
+    }
+
+    constructor(address _factory) {
+        curveFactory = ICurveFactory(_factory);
+    }
 
     function unzap(
         address _curve,
@@ -55,7 +65,7 @@ contract Zap {
         uint256 _minTokenAmount,
         address _token,
         bool _toETH
-    ) public returns (uint256) {
+    ) public isDFXCurve(_curve) returns (uint256) {
         address wETH = ICurve(_curve).getWeth();
         IERC20Detailed base = IERC20Detailed(
             Curve(payable(_curve)).numeraires(0)
@@ -67,14 +77,14 @@ contract Zap {
             _token == address(base) || _token == address(quote),
             "zap/token-not-supported"
         );
-        bool isFromBase = _token == address(base) ? true : false;
         IERC20Detailed(_curve).safeTransferFrom(
             msg.sender,
             address(this),
             _lpAmount
         );
         Curve(payable(_curve)).withdraw(_lpAmount, _deadline);
-        if (isFromBase) {
+        // from base
+        if (_token == address(base)) {
             uint256 baseAmount = base.balanceOf(address(this));
             base.safeApprove(_curve, 0);
             base.safeApprove(_curve, type(uint256).max);
@@ -137,7 +147,7 @@ contract Zap {
         uint256 _deadline,
         uint256 _minLPAmount,
         address _token
-    ) public returns (uint256) {
+    ) public isDFXCurve(_curve) returns (uint256) {
         IERC20Detailed base = IERC20Detailed(
             Curve(payable(_curve)).numeraires(0)
         );
@@ -182,7 +192,7 @@ contract Zap {
         address _curve,
         uint256 _deadline,
         uint256 _minLPAmount
-    ) public payable returns (uint256) {
+    ) public payable isDFXCurve(_curve) returns (uint256) {
         require(msg.value > 0, "zap/zap-amount-is-zero");
         // token is weth, zapAmount is msg.value - coming eth amount
         address _token = ICurve(_curve).getWeth();
