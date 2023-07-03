@@ -169,7 +169,7 @@ contract FeeOnTransferAttack is Test {
         );
         cheats.stopPrank();
 
-        // plog();
+        plog();
 
         cheats.startPrank(address(accounts[1]));
         curves[0].originSwap(
@@ -181,7 +181,7 @@ contract FeeOnTransferAttack is Test {
         );
         cheats.stopPrank();
 
-        // plog();
+        plog();
 
         cheats.startPrank(address(accounts[1]));
         curves[0].originSwap(
@@ -193,7 +193,7 @@ contract FeeOnTransferAttack is Test {
         );
         cheats.stopPrank();
 
-        // plog();
+        plog();
 
         uint256 userFoTBal = tokens[0].balanceOf(address(accounts[1]));
         // normalise mintAmount with decimals
