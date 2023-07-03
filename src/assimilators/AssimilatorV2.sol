@@ -79,7 +79,13 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     function intakeRawAndGetBalance(
         uint256 _amount
     ) external payable override returns (int128 amount_, int128 balance_) {
+        uint256 balanceBefore = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
+        uint256 balanceAfter = token.balanceOf(address(this));
+        uint256 diff = _amount - (balanceAfter - balanceBefore);
+        if (diff > 0) {
+            intakeMoreFromFoT(_amount, diff);
+        }
 
         uint256 _balance = token.balanceOf(address(this));
 
@@ -98,7 +104,16 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     function intakeRaw(
         uint256 _amount
     ) external payable override returns (int128 amount_) {
+        uint256 balanceBefore = token.balanceOf(address(this));
+
         token.safeTransferFrom(msg.sender, address(this), _amount);
+
+        uint256 balanceAfter = token.balanceOf(address(this));
+
+        uint256 diff = _amount - (balanceAfter - balanceBefore);
+        if (diff > 0) {
+            intakeMoreFromFoT(_amount, diff);
+        }
 
         uint256 _rate = getRate();
 
@@ -116,8 +131,12 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         amount_ =
             (_amount.mulu(10 ** tokenDecimals) * 10 ** oracleDecimals) /
             _rate;
+        uint256 balanceBefore = token.balanceOf(address(this));
 
         token.safeTransferFrom(msg.sender, address(this), amount_);
+        uint256 balanceAfter = token.balanceOf(address(this));
+        uint256 diff = amount_ - (balanceAfter - balanceBefore);
+        if (diff > 0) intakeMoreFromFoT(amount_, diff);
     }
 
     // takes a numeraire amount, calculates the raw amount of eurs, transfers it in and returns the corresponding raw amount
@@ -161,7 +180,28 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
                 "Assimilator/LP Ratio imbalanced!"
             );
         }
+        uint256 balanceBefore = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), amount_);
+        uint256 balanceAfter = token.balanceOf(address(this));
+        uint256 diff = amount_ - (balanceAfter - balanceBefore);
+        if (diff > 0) intakeMoreFromFoT(amount_, diff);
+    }
+
+    function intakeMoreFromFoT(uint256 amount_, uint256 diff) internal {
+        // handle FoT token
+        uint256 feePercentage = diff.mul(1e5).div(amount_).add(1);
+        uint256 additionalIntakeAmt = (diff * 1e5) / (1e5 - feePercentage);
+        token.safeTransferFrom(msg.sender, address(this), additionalIntakeAmt);
+        // amount_ = amount_.add(additionalIntakeAmt);
+        uint256 balance2ndAfter = token.balanceOf(address(this));
+        // now refund it took more than needed
+        // if (balance2ndAfter > amount_) {
+        //     token.safeTransferFrom(
+        //         address(this),
+        //         msg.sender,
+        //         balance2ndAfter.sub(amount_)
+        //     );
+        // }
     }
 
     // takes a raw amount of eurs and transfers it out, returns numeraire value of the raw amount
