@@ -99,10 +99,11 @@ contract V25Test is Test {
         linkPrice = uint256(linkOracle.latestAnswer());
         console.log("Link price is ", linkPrice);
 
+        cheats.startPrank(address(accounts[2]));
         // deploy a new config contract
         config = new Config(50000, address(accounts[2]));
         // deploy new assimilator factory
-        assimFactory = new AssimilatorFactory();
+        assimFactory = new AssimilatorFactory(address(config));
         // deploy new curve factory
         curveFactory = new CurveFactoryV2(
             address(assimFactory),
@@ -114,6 +115,7 @@ contract V25Test is Test {
         zap = new Zap(address(curveFactory));
         // now deploy router
         router = new Router(address(curveFactory));
+        cheats.stopPrank();
         // now deploy curves
         eurocUsdcCurve = createCurve(
             "euroc-usdc",
@@ -136,6 +138,34 @@ contract V25Test is Test {
             address(wethOracle),
             address(linkOracle)
         );
+    }
+
+    // test ownership
+    function testOwnership() public {
+        address curveFactoryOwner = curveFactory.owner();
+        address assimFactoryOwner = assimFactory.owner();
+        assert(curveFactoryOwner == assimFactoryOwner);
+    }
+
+    function testTreasuryOwnershipOverCurve() public {
+        console.log("original curve owner is ", eurocUsdcCurve.owner());
+        console.log("protocol treasury is ", address(accounts[2]));
+        cheats.startPrank(address(accounts[2]));
+        eurocUsdcCurve.transferOwnership(address(accounts[0]));
+        cheats.stopPrank();
+        address newOwner = eurocUsdcCurve.owner();
+        assert(address(accounts[0]) == newOwner);
+        cheats.startPrank(address(accounts[0]));
+        eurocUsdcCurve.transferOwnership(address(accounts[1]));
+        cheats.stopPrank();
+        address finalOwner = eurocUsdcCurve.owner();
+        assert(address(accounts[1]) == finalOwner);
+    }
+
+    function testFailOwnership() public {
+        cheats.startPrank(address(accounts[1]));
+        eurocUsdcCurve.transferOwnership(address(accounts[0]));
+        cheats.stopPrank();
     }
 
     // test euroc-usdc curve

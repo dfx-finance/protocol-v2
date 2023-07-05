@@ -74,9 +74,11 @@ contract FeeOnTransferAttack is Test {
         );
         oracles.push(IOracle(Polygon.CHAINLINK_USDC));
 
+        cheats.startPrank(address(accounts[2]));
+
         config = new Config(50000, address(accounts[2])); // accounts[2] is the treasury
         // deploy new assimilator factory & curveFactory v2
-        assimFactory = new AssimilatorFactory();
+        assimFactory = new AssimilatorFactory(address(config));
         curveFactory = new CurveFactoryV2(
             address(assimFactory),
             address(config),
@@ -84,7 +86,6 @@ contract FeeOnTransferAttack is Test {
         );
         assimFactory.setCurveFactory(address(curveFactory));
         // now deploy curves
-        cheats.startPrank(address(accounts[2]));
 
         CurveInfo memory curveInfo = CurveInfo(
             string(abi.encode("dfx-curve-FOT-USDC")),

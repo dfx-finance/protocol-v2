@@ -153,7 +153,6 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         _quoteAssim = (
             assimilatorFactory.getAssimilator(
                 _info._quoteCurrency,
-                // _info._quoteCurrency
                 _info._baseCurrency
             )
         );
@@ -201,7 +200,6 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
             _info._epsilon,
             _info._lambda
         );
-        curve.transferOwnership(getProtocolTreasury());
         curves[idPair.curveId] = address(curve);
         curves[idPair.curveIdReversed] = address(curve);
         isDFXCurve[address(curve)] = true;

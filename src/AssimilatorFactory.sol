@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
 import "./assimilators/AssimilatorV2.sol";
 import "./interfaces/IAssimilatorFactory.sol";
 import "./interfaces/IOracle.sol";
 import "./interfaces/ICurveFactory.sol";
+import "./interfaces/IConfig.sol";
 import "forge-std/Test.sol";
 
-contract AssimilatorFactory is IAssimilatorFactory, Ownable {
+contract AssimilatorFactory is IAssimilatorFactory {
     using Address for address;
 
     event NewAssimilator(
@@ -33,6 +33,7 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
     mapping(bytes32 => AssimilatorV2) public assimilators;
 
     address public curveFactory;
+    address public config;
 
     modifier onlyCurveFactoryOrOwner() {
         require(
@@ -42,7 +43,22 @@ contract AssimilatorFactory is IAssimilatorFactory, Ownable {
         _;
     }
 
-    constructor() {}
+    modifier onlyOwner() {
+        require(
+            msg.sender == IConfig(config).getProtocolTreasury(),
+            "unauthorized"
+        );
+        _;
+    }
+
+    constructor(address _config) {
+        require(_config.isContract(), "AssimFactory/invalid-config-address");
+        config = _config;
+    }
+
+    function owner() public view returns (address) {
+        return IConfig(config).getProtocolTreasury();
+    }
 
     function setCurveFactory(address _curveFactory) external onlyOwner {
         require(

@@ -323,7 +323,11 @@ contract Curve is Storage, NoDelegateCall, ICurve {
     );
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Curve/caller-is-not-owner");
+        require(
+            msg.sender == owner ||
+                msg.sender == ICurveFactory(curveFactory).getProtocolTreasury(),
+            "Curve/caller-is-not-owner"
+        );
         _;
     }
 
