@@ -29,12 +29,11 @@ import "./ProportionalLiquidity.sol";
 import "./Swaps.sol";
 import "./ViewLiquidity.sol";
 import "./Storage.sol";
-import "./interfaces/IFreeFromUpTo.sol";
 import "./interfaces/ICurveFactory.sol";
 import "./interfaces/IAssimilator.sol";
 import "./interfaces/ICurve.sol";
+import "./interfaces/IConfig.sol";
 import "./Structs.sol";
-import "forge-std/Test.sol";
 
 library Curves {
     using ABDKMath64x64 for int128;
@@ -260,6 +259,7 @@ contract Curve is Storage, NoDelegateCall, ICurve {
     address private curveFactory;
     address private immutable wETH;
 
+    IConfig private config;
     event Approval(
         address indexed _owner,
         address indexed spender,
@@ -324,8 +324,7 @@ contract Curve is Storage, NoDelegateCall, ICurve {
 
     modifier onlyOwner() {
         require(
-            msg.sender == owner ||
-                msg.sender == ICurveFactory(curveFactory).getProtocolTreasury(),
+            msg.sender == owner || msg.sender == config.getProtocolTreasury(),
             "Curve/caller-is-not-owner"
         );
         _;
@@ -366,35 +365,26 @@ contract Curve is Storage, NoDelegateCall, ICurve {
 
     modifier globallyTransactable() {
         require(
-            !ICurveFactory(address(curveFactory)).getGlobalFrozenState(),
+            !config.getGlobalFrozenState(),
             "Curve/frozen-globally-only-allowing-proportional-withdraw"
-        );
-        _;
-    }
-
-    modifier isFlashable() {
-        require(
-            ICurveFactory(address(curveFactory)).getFlashableState(),
-            "Curve/flashloans-paused"
         );
         _;
     }
 
     modifier isDepositable(address pool, uint256 deposits) {
         {
-            uint256 poolCap = ICurveFactory(curveFactory).getPoolCap(pool);
+            uint256 poolCap = config.getPoolCap(pool);
             uint256 supply = totalSupply();
             require(
                 poolCap == 0 || supply.add(deposits) <= poolCap,
                 "curve/exceeds pool cap"
             );
         }
-        if (!ICurveFactory(curveFactory).isPoolGuarded(pool)) {
+        if (!config.isPoolGuarded(pool)) {
             _;
         } else {
             _;
-            uint256 poolGuardAmt = ICurveFactory(curveFactory)
-                .getPoolGuardAmount(pool);
+            uint256 poolGuardAmt = config.getPoolGuardAmount(pool);
             require(
                 curve.balances[msg.sender] <= poolGuardAmt,
                 "curve/deposit-exceeds-guard-amt"
@@ -407,13 +397,15 @@ contract Curve is Storage, NoDelegateCall, ICurve {
         string memory _symbol,
         address[] memory _assets,
         uint256[] memory _assetWeights,
-        address _factory
+        address _factory,
+        address _config
     ) {
         require(_factory != address(0), "Curve/curve factory zero address!");
         owner = msg.sender;
         name = _name;
         symbol = _symbol;
         curveFactory = _factory;
+        config = IConfig(_config);
         emit OwnershipTransfered(address(0), msg.sender);
         wETH = ICurveFactory(_factory).wETH();
 
@@ -971,70 +963,6 @@ contract Curve is Storage, NoDelegateCall, ICurve {
         uint256 _amount
     ) public nonReentrant noDelegateCall returns (bool success_) {
         success_ = Curves.approve(curve, _spender, _amount);
-    }
-
-    function flash(
-        address recipient,
-        uint256 amount0,
-        uint256 amount1,
-        bytes calldata data
-    )
-        external
-        isFlashable
-        globallyTransactable
-        nonReentrant
-        noDelegateCall
-        transactable
-        isNotEmergency
-    {
-        uint256 fee = curve.epsilon.mulu(1e18);
-
-        require(
-            IERC20(derivatives[0]).balanceOf(address(this)) > 0,
-            "Curve/token0-zero-liquidity-depth"
-        );
-        require(
-            IERC20(derivatives[1]).balanceOf(address(this)) > 0,
-            "Curve/token1-zero-liquidity-depth"
-        );
-
-        uint256 fee0 = FullMath.mulDivRoundingUp(amount0, fee, 1e18);
-        uint256 fee1 = FullMath.mulDivRoundingUp(amount1, fee, 1e18);
-
-        uint256 balance0Before = IERC20(derivatives[0]).balanceOf(
-            address(this)
-        );
-        uint256 balance1Before = IERC20(derivatives[1]).balanceOf(
-            address(this)
-        );
-
-        if (amount0 > 0)
-            IERC20(derivatives[0]).safeTransfer(recipient, amount0);
-        if (amount1 > 0)
-            IERC20(derivatives[1]).safeTransfer(recipient, amount1);
-
-        IFlashCallback(msg.sender).flashCallback(fee0, fee1, data);
-
-        uint256 balance0After = IERC20(derivatives[0]).balanceOf(address(this));
-        uint256 balance1After = IERC20(derivatives[1]).balanceOf(address(this));
-
-        require(
-            balance0Before.add(fee0) <= balance0After,
-            "Curve/insufficient-token0-returned"
-        );
-        require(
-            balance1Before.add(fee1) <= balance1After,
-            "Curve/insufficient-token1-returned"
-        );
-
-        // sub is safe because we know balanceAfter is gt balanceBefore by at least fee
-        uint256 paid0 = balance0After - balance0Before;
-        uint256 paid1 = balance1After - balance1Before;
-
-        IERC20(derivatives[0]).safeTransfer(owner, paid0);
-        IERC20(derivatives[1]).safeTransfer(owner, paid1);
-
-        emit Flash(msg.sender, recipient, amount0, amount1, paid0, paid1);
     }
 
     /// @notice view the curve token balance of a given account

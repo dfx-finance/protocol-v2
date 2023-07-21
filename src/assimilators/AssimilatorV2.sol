@@ -24,7 +24,6 @@ import "../interfaces/IAssimilator.sol";
 import "../interfaces/IOracle.sol";
 import "../interfaces/IERC20Detailed.sol";
 import "../interfaces/IWeth.sol";
-import "forge-std/Test.sol";
 
 contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     using ABDKMath64x64 for int128;
@@ -193,7 +192,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         uint256 additionalIntakeAmt = (diff * 1e5) / (1e5 - feePercentage);
         token.safeTransferFrom(msg.sender, address(this), additionalIntakeAmt);
         // amount_ = amount_.add(additionalIntakeAmt);
-        uint256 balance2ndAfter = token.balanceOf(address(this));
+        // uint256 balance2ndAfter = token.balanceOf(address(this));
         // now refund it took more than needed
         // if (balance2ndAfter > amount_) {
         //     token.safeTransferFrom(

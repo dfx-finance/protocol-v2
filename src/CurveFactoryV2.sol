@@ -16,13 +16,10 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
-// Finds new Curves! logs their addresses and provides `isCurve(address) -> (bool)`
-
 import "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 import "./Curve.sol";
-import "./interfaces/IFreeFromUpTo.sol";
 import "./AssimilatorFactory.sol";
 import "./assimilators/AssimilatorV2.sol";
 import "./interfaces/ICurveFactory.sol";
@@ -60,19 +57,19 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         wETH = _weth;
     }
 
-    function getGlobalFrozenState()
-        external
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return config.getGlobalFrozenState();
-    }
+    // function getGlobalFrozenState()
+    //     external
+    //     view
+    //     virtual
+    //     override
+    //     returns (bool)
+    // {
+    //     return config.getGlobalFrozenState();
+    // }
 
-    function getFlashableState() external view virtual override returns (bool) {
-        return config.getFlashableState();
-    }
+    // function getFlashableState() external view virtual override returns (bool) {
+    //     return config.getFlashableState();
+    // }
 
     function getProtocolFee() external view virtual override returns (int128) {
         return config.getProtocolFee();
@@ -86,20 +83,6 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         returns (address)
     {
         return config.getProtocolTreasury();
-    }
-
-    function isPoolGuarded(address pool) external view override returns (bool) {
-        return config.isPoolGuarded(pool);
-    }
-
-    function getPoolGuardAmount(
-        address pool
-    ) external view override returns (uint256) {
-        return config.getPoolGuardAmount(pool);
-    }
-
-    function getPoolCap(address pool) external view override returns (uint256) {
-        return config.getPoolCap(pool);
     }
 
     function getCurve(
@@ -191,7 +174,8 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
             _info._symbol,
             _assets,
             _assetWeights,
-            address(this)
+            address(this),
+            address(config)
         );
         curve.setParams(
             _info._alpha,

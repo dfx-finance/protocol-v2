@@ -27,7 +27,6 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
 
     // Global curve operational state
     bool public globalFrozen = false;
-    bool public flashable = false;
 
     bool public globalGuarded = false;
     mapping(address => bool) public poolGuarded;
@@ -43,7 +42,6 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
     mapping(address => bool) public isOracleUsed;
 
     event GlobalFrozenSet(bool isFrozen);
-    event FlashableSet(bool isFlashable);
     event TreasuryUpdated(address indexed newTreasury);
     event ProtocolFeeUpdated(address indexed treasury, int128 indexed fee);
     event GlobalGuardSet(bool isGuarded);
@@ -76,10 +74,6 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
         returns (bool)
     {
         return globalFrozen;
-    }
-
-    function getFlashableState() external view virtual override returns (bool) {
-        return flashable;
     }
 
     function getProtocolFee() external view virtual override returns (int128) {
@@ -168,14 +162,6 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
 
     function getPoolCap(address pool) external view override returns (uint256) {
         return poolCapAmt[pool];
-    }
-
-    function setFlashable(
-        bool _toFlashOrNotToFlash
-    ) external virtual override onlyOwner nonReentrant {
-        emit FlashableSet(_toFlashOrNotToFlash);
-
-        flashable = _toFlashOrNotToFlash;
     }
 
     function updateProtocolTreasury(
