@@ -165,6 +165,10 @@ library ProportionalLiquidity {
 
         int128 _multiplier = __withdrawal.div(_totalShells);
 
+        // burn first to avoid read only reentrancy
+
+        burn(curve, msg.sender, _withdrawal);
+
         for (uint256 i = 0; i < _length; i++) {
             if (
                 _toETH &&
@@ -185,8 +189,6 @@ library ProportionalLiquidity {
                     false
                 );
         }
-
-        burn(curve, msg.sender, _withdrawal);
 
         return withdrawals_;
     }

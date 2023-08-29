@@ -788,7 +788,9 @@ contract Curve is Storage, NoDelegateCall, ICurve {
             IERC20(wETH).safeTransferFrom(
                 msg.sender,
                 address(this),
-                msg.value - deposits_[0]
+                // msg.value - deposits_[0]
+                // replace with remainder to avoid unintended loss
+                remainder
             );
             IWETH(wETH).withdraw(remainder);
             (bool success, ) = msg.sender.call{value: remainder}("");

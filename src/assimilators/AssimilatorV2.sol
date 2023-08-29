@@ -17,6 +17,7 @@ pragma solidity ^0.8.13;
 
 import "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
+import "../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
 import "../lib/ABDKMath64x64.sol";
@@ -127,9 +128,16 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     ) external payable override returns (uint256 amount_) {
         uint256 _rate = getRate();
 
-        amount_ =
-            (_amount.mulu(10 ** tokenDecimals) * 10 ** oracleDecimals) /
-            _rate;
+        // amount_ =
+        //     (_amount.mulu(10 ** tokenDecimals) * 10 ** oracleDecimals) /
+        //     _rate;
+        // round up instead of down
+        amount_ = Math.mulDiv(
+            _amount.mulu(10 ** tokenDecimals),
+            10 ** oracleDecimals,
+            _rate,
+            Math.Rounding.Up
+        );
         uint256 balanceBefore = token.balanceOf(address(this));
 
         token.safeTransferFrom(msg.sender, address(this), amount_);
@@ -372,8 +380,15 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     ) external payable override {
         uint256 _rate = getRate();
         if (_amount < 0) _amount = -(_amount);
-        uint256 amount = (_amount.mulu(10 ** tokenDecimals) *
-            10 ** oracleDecimals) / _rate;
+        // uint256 amount = (_amount.mulu(10 ** tokenDecimals) *
+        //     10 ** oracleDecimals) / _rate;
+        // round up instead of down
+        uint256 amount = Math.mulDiv(
+            _amount.mulu(10 ** tokenDecimals),
+            10 ** oracleDecimals,
+            _rate,
+            Math.Rounding.Up
+        );
         token.safeTransfer(_treasury, amount);
     }
 }
