@@ -221,9 +221,9 @@ library CurveMath {
                 if (_nBals[i] > _nHalt) {
                     int128 _oHalt = _oGLiq.mul(_weights[i]).mul(_upperAlpha);
 
-                    if (_oBals[i] < _oHalt) revert("Curve/upper-halt");
+                    if (_oBals[i] < _oHalt) revert("Curve/upper-halt-1");
                     if (_nBals[i] - _nHalt > _oBals[i] - _oHalt)
-                        revert("Curve/upper-halt");
+                        revert("Curve/upper-halt-2");
                 }
             } else {
                 int128 _lowerAlpha = ONE - _alpha;

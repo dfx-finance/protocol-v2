@@ -18,7 +18,6 @@ pragma solidity ^0.8.13;
 import "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 import "../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
-import "../../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
 import "../lib/ABDKMath64x64.sol";
 import "../interfaces/IAssimilator.sol";
@@ -26,7 +25,7 @@ import "../interfaces/IOracle.sol";
 import "../interfaces/IERC20Detailed.sol";
 import "../interfaces/IWeth.sol";
 
-contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
+contract AssimilatorV2 is IAssimilator {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
 
@@ -122,7 +121,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         );
     }
 
-    // takes a numeraire amount, calculates the raw amount of eurs, transfers it in and returns the corresponding raw amount
+    // takes a numeraire amount, calculates the raw amount of eurs, tr                                                                                                                                                                                                                                                                                        ansfers it in and returns the corresponding raw amount
     function intakeNumeraire(
         int128 _amount
     ) external payable override returns (uint256 amount_) {
@@ -133,8 +132,8 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         //     _rate;
         // round up instead of down
         amount_ = Math.mulDiv(
-            _amount.mulu(10 ** tokenDecimals),
-            10 ** oracleDecimals,
+            _amount.mulu(10 ** (tokenDecimals + oracleDecimals)),
+            1,
             _rate,
             Math.Rounding.Up
         );
@@ -173,7 +172,7 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         // Rate is in pair token decimals
         uint256 _rate = _pairTokenBal.mul(1e6).div(_tokenBal);
 
-        amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
+        amount_ = (_amount.mulu(10 ** tokenDecimals * 1e6)) / _rate;
         amount_ = amount_.add(1);
         if (address(token) == address(pairToken)) {
             require(
@@ -199,16 +198,6 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         uint256 feePercentage = diff.mul(1e5).div(amount_).add(1);
         uint256 additionalIntakeAmt = (diff * 1e5) / (1e5 - feePercentage);
         token.safeTransferFrom(msg.sender, address(this), additionalIntakeAmt);
-        // amount_ = amount_.add(additionalIntakeAmt);
-        // uint256 balance2ndAfter = token.balanceOf(address(this));
-        // now refund it took more than needed
-        // if (balance2ndAfter > amount_) {
-        //     token.safeTransferFrom(
-        //         address(this),
-        //         msg.sender,
-        //         balance2ndAfter.sub(amount_)
-        //     );
-        // }
     }
 
     // takes a raw amount of eurs and transfers it out, returns numeraire value of the raw amount
@@ -271,9 +260,12 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     ) external view override returns (uint256 amount_) {
         uint256 _rate = getRate();
 
-        amount_ =
-            (_amount.mulu(10 ** tokenDecimals) * 10 ** oracleDecimals) /
-            _rate;
+        amount_ = Math.mulDiv(
+            _amount.mulu(10 ** (tokenDecimals + oracleDecimals)),
+            1,
+            _rate,
+            Math.Rounding.Up
+        );
     }
 
     function viewRawAmountLPRatio(
@@ -297,11 +289,12 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
         // Rate is in 1e6
         uint256 _rate = _pairTokenBal.mul(10 ** tokenDecimals).div(_tokenBal);
 
-        // amount_ = (_amount.mulu(10 ** tokenDecimals) * 1e6) / _rate;
-
-        amount_ =
-            (_amount.mulu(10 ** tokenDecimals) * 10 ** pairTokenDecimals) /
-            _rate;
+        amount_ = Math.mulDiv(
+            _amount.mulu(10 ** (tokenDecimals + pairTokenDecimals)),
+            1,
+            _rate,
+            Math.Rounding.Up
+        );
     }
 
     // takes a raw amount and returns the numeraire amount
@@ -380,12 +373,9 @@ contract AssimilatorV2 is IAssimilator, ReentrancyGuard {
     ) external payable override {
         uint256 _rate = getRate();
         if (_amount < 0) _amount = -(_amount);
-        // uint256 amount = (_amount.mulu(10 ** tokenDecimals) *
-        //     10 ** oracleDecimals) / _rate;
-        // round up instead of down
         uint256 amount = Math.mulDiv(
-            _amount.mulu(10 ** tokenDecimals),
-            10 ** oracleDecimals,
+            _amount.mulu(10 ** (tokenDecimals + oracleDecimals)),
+            1,
             _rate,
             Math.Rounding.Up
         );

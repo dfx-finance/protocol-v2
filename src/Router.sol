@@ -88,7 +88,7 @@ contract Router {
             );
             uint256 originBalance = IERC20(_path[i]).balanceOf(address(this));
             IERC20(_path[i]).safeApprove(curve, originBalance);
-            targetAmount_ = Curve(curve).originSwap(
+            Curve(curve).originSwap(
                 _path[i],
                 _path[i + 1],
                 originBalance,
@@ -96,6 +96,7 @@ contract Router {
                 _deadline
             );
         }
+        targetAmount_ = IERC20(target).balanceOf(address(this));
         require(targetAmount_ >= _minTargetAmount, "Router/originswap-failure");
         IERC20(target).safeTransfer(msg.sender, targetAmount_);
     }
@@ -118,7 +119,7 @@ contract Router {
             );
             uint256 originBalance = IERC20(_path[i]).balanceOf(address(this));
             IERC20(_path[i]).safeApprove(curve, originBalance);
-            targetAmount_ = Curve(curve).originSwap(
+            Curve(curve).originSwap(
                 _path[i],
                 _path[i + 1],
                 originBalance,
@@ -126,6 +127,7 @@ contract Router {
                 _deadline
             );
         }
+        targetAmount_ = IERC20(target).balanceOf(address(this));
         require(
             targetAmount_ >= _minTargetAmount,
             "Router/originswap-from-ETH-failure"

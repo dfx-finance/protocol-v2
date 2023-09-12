@@ -781,17 +781,11 @@ contract Curve is Storage, NoDelegateCall, ICurve {
         ) {
             remainder = msg.value - deposits_[1];
         } else {
-            revert("reverted here");
+            revert("Curve/Deposit ETH failed");
         }
         // now need to determine which is wETH
         if (remainder > 0) {
-            IERC20(wETH).safeTransferFrom(
-                msg.sender,
-                address(this),
-                // msg.value - deposits_[0]
-                // replace with remainder to avoid unintended loss
-                remainder
-            );
+            IERC20(wETH).safeTransferFrom(msg.sender, address(this), remainder);
             IWETH(wETH).withdraw(remainder);
             (bool success, ) = msg.sender.call{value: remainder}("");
             require(success, "Curve/ETH transfer failed");

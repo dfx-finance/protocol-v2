@@ -56,4 +56,10 @@ library Polygon {
         0xAB594600376Ec9fD91F8e885dADF0CE036862dE0;
     address public constant CHAINLINK_LINK =
         0xd9FFdb71EbE7496cC440152d43986Aae0AB76665;
+
+    address public constant CHAINLINK_MANA =
+        0xA1CbF3Fe43BC3501e3Fc4b573e822c70e76A7512;
+
+    address public constant CHAINLINK_BNB =
+        0x82a6c4AF830caa6c97bb504425f6A66165C2c26e;
 }
