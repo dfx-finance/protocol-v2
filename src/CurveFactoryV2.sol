@@ -26,6 +26,7 @@ import "./interfaces/ICurveFactory.sol";
 import "./interfaces/IAssimilatorFactory.sol";
 import "./interfaces/IERC20Detailed.sol";
 import "./interfaces/IConfig.sol";
+
 import "./Structs.sol";
 
 contract CurveFactoryV2 is ICurveFactory, Ownable {
@@ -42,34 +43,17 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
 
     mapping(bytes32 => address) public curves;
 
-    mapping(address => bool) public isDFXCurve;
+    mapping(address => bool
 
     address public immutable wETH;
 
     constructor(address _assimFactory, address _config, address _weth) {
-        require(
-            _assimFactory.isContract(),
-            "CurveFactory/invalid-assimFactory"
-        );
+        require(_assimFactory.isContract(), "invalid-assimFactory");
         assimilatorFactory = IAssimilatorFactory(_assimFactory);
-        require(_config.isContract(), "CurveFactory/invalid-config");
+        require(_config.isContract(), "invalid-config");
         config = IConfig(_config);
         wETH = _weth;
     }
-
-    // function getGlobalFrozenState()
-    //     external
-    //     view
-    //     virtual
-    //     override
-    //     returns (bool)
-    // {
-    //     return config.getGlobalFrozenState();
-    // }
-
-    // function getFlashableState() external view virtual override returns (bool) {
-    //     return config.getFlashableState();
-    // }
 
     function getProtocolFee() external view virtual override returns (int128) {
         return config.getProtocolFee();

@@ -62,5 +62,5 @@ contract Storage {
     // Curve operational state
     bool public frozen = false;
     bool public emergency = false;
-    bool internal notEntered = true;
+    bool public notEntered = true;
 }
