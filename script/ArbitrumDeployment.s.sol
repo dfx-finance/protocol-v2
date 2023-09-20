@@ -52,55 +52,58 @@ contract ContractScript is Script {
         IOracle dodoOracle = IOracle(Arbitrum.CHAINLINK_DODO_USD);
 
         // usdc-cadc curve info
-        CurveInfo memory cadcUsdcCurveInfo = CurveInfo(
-            "dfx-cadc-usdc-v2.5",
-            "dfx-cadc-usdc-v2.5",
-            Arbitrum.CADC,
-            Arbitrum.USDC,
-            CurveParams.BASE_WEIGHT,
-            CurveParams.QUOTE_WEIGHT,
-            cadOracle,
-            usdOracle,
-            CurveParams.ALPHA,
-            CurveParams.BETA,
-            CurveParams.MAX,
-            Arbitrum.EPSILON,
-            CurveParams.LAMBDA
-        );
+        CurveFactoryV2.CurveInfo memory cadcUsdcCurveInfo = CurveFactoryV2
+            .CurveInfo(
+                "dfx-cadc-usdc-v2.5",
+                "dfx-cadc-usdc-v2.5",
+                Arbitrum.CADC,
+                Arbitrum.USDC,
+                CurveParams.BASE_WEIGHT,
+                CurveParams.QUOTE_WEIGHT,
+                cadOracle,
+                usdOracle,
+                CurveParams.ALPHA,
+                CurveParams.BETA,
+                CurveParams.MAX,
+                Arbitrum.EPSILON,
+                CurveParams.LAMBDA
+            );
 
         // cadc-crv curve info
-        CurveInfo memory cadcCrvCurveInfo = CurveInfo(
-            "dfx-cadc-crv-v2.5",
-            "dfx-cadc-crv-v2.5",
-            Arbitrum.CADC,
-            Arbitrum.CRV,
-            CurveParams.BASE_WEIGHT,
-            CurveParams.QUOTE_WEIGHT,
-            cadOracle,
-            crvOracle,
-            CurveParams.ALPHA,
-            CurveParams.BETA,
-            CurveParams.MAX,
-            Arbitrum.EPSILON,
-            CurveParams.LAMBDA
-        );
+        CurveFactoryV2.CurveInfo memory cadcCrvCurveInfo = CurveFactoryV2
+            .CurveInfo(
+                "dfx-cadc-crv-v2.5",
+                "dfx-cadc-crv-v2.5",
+                Arbitrum.CADC,
+                Arbitrum.CRV,
+                CurveParams.BASE_WEIGHT,
+                CurveParams.QUOTE_WEIGHT,
+                cadOracle,
+                crvOracle,
+                CurveParams.ALPHA,
+                CurveParams.BETA,
+                CurveParams.MAX,
+                Arbitrum.EPSILON,
+                CurveParams.LAMBDA
+            );
 
         // crv-dodo curve info
-        CurveInfo memory crvDodoCurveInfo = CurveInfo(
-            "dfx-dodo-crv-v2.5",
-            "dfx-dodo-crv-v2.5",
-            Arbitrum.DODO,
-            Arbitrum.CRV,
-            CurveParams.BASE_WEIGHT,
-            CurveParams.QUOTE_WEIGHT,
-            dodoOracle,
-            crvOracle,
-            CurveParams.ALPHA,
-            CurveParams.BETA,
-            CurveParams.MAX,
-            Arbitrum.EPSILON,
-            CurveParams.LAMBDA
-        );
+        CurveFactoryV2.CurveInfo memory crvDodoCurveInfo = CurveFactoryV2
+            .CurveInfo(
+                "dfx-dodo-crv-v2.5",
+                "dfx-dodo-crv-v2.5",
+                Arbitrum.DODO,
+                Arbitrum.CRV,
+                CurveParams.BASE_WEIGHT,
+                CurveParams.QUOTE_WEIGHT,
+                dodoOracle,
+                crvOracle,
+                CurveParams.ALPHA,
+                CurveParams.BETA,
+                CurveParams.MAX,
+                Arbitrum.EPSILON,
+                CurveParams.LAMBDA
+            );
 
         // Deploy all new Curves
         deployedCurveFactory.newCurve(cadcUsdcCurveInfo);

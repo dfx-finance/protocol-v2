@@ -87,7 +87,7 @@ contract FeeOnTransferAttack is Test {
         assimFactory.setCurveFactory(address(curveFactory));
         // now deploy curves
 
-        CurveInfo memory curveInfo = CurveInfo(
+        CurveFactoryV2.CurveInfo memory curveInfo = CurveFactoryV2.CurveInfo(
             string(abi.encode("dfx-curve-FOT-USDC")),
             string(abi.encode("lp-FOT-USDC")),
             address(tokens[0]),

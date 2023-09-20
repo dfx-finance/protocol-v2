@@ -47,24 +47,3 @@ struct IntakeNumLpRatioInfo {
     uint256 maxQuote;
     int128 amount;
 }
-
-struct CurveIDPair {
-    bytes32 curveId;
-    bytes32 curveIdReversed;
-}
-
-struct CurveInfo {
-    string _name;
-    string _symbol;
-    address _baseCurrency;
-    address _quoteCurrency;
-    uint256 _baseWeight;
-    uint256 _quoteWeight;
-    IOracle _baseOracle;
-    IOracle _quoteOracle;
-    uint256 _alpha;
-    uint256 _beta;
-    uint256 _feeAtHalt;
-    uint256 _epsilon;
-    uint256 _lambda;
-}

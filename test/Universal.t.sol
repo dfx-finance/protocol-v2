@@ -1081,7 +1081,7 @@ contract V25Test is Test {
         address quoteOracle
     ) public returns (Curve) {
         cheats.startPrank(address(accounts[2]));
-        CurveInfo memory curveInfo = CurveInfo(
+        CurveFactoryV2.CurveInfo memory curveInfo = CurveFactoryV2.CurveInfo(
             string(abi.encode("dfx-curve-", name)),
             string(abi.encode("lp-", name)),
             base,

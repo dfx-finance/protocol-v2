@@ -60,69 +60,73 @@ contract ContractScript is Script {
         address LINK = 0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39;
         address WMATIC = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
 
-        CurveInfo memory cadcUsdcCurveInfo = CurveInfo(
-            "dfx-cadc-usdc-v2.5",
-            "dfx-cadc-usdc-v2.5",
-            Polygon.CADC,
-            Polygon.USDC,
-            CurveParams.BASE_WEIGHT,
-            CurveParams.QUOTE_WEIGHT,
-            cadOracle,
-            usdOracle,
-            CurveParams.ALPHA,
-            CurveParams.BETA,
-            CurveParams.MAX,
-            Polygon.CADC_EPSILON,
-            CurveParams.LAMBDA
-        );
+        CurveFactoryV2.CurveInfo memory cadcUsdcCurveInfo = CurveFactoryV2
+            .CurveInfo(
+                "dfx-cadc-usdc-v2.5",
+                "dfx-cadc-usdc-v2.5",
+                Polygon.CADC,
+                Polygon.USDC,
+                CurveParams.BASE_WEIGHT,
+                CurveParams.QUOTE_WEIGHT,
+                cadOracle,
+                usdOracle,
+                CurveParams.ALPHA,
+                CurveParams.BETA,
+                CurveParams.MAX,
+                Polygon.CADC_EPSILON,
+                CurveParams.LAMBDA
+            );
 
-        CurveInfo memory cadcMaticCurveInfo = CurveInfo(
-            "dfx-cadc-matic-v2.5",
-            "dfx-cadc-matic-v2.5",
-            Polygon.CADC,
-            WMATIC,
-            CurveParams.BASE_WEIGHT,
-            CurveParams.QUOTE_WEIGHT,
-            cadOracle,
-            wethOracle,
-            CurveParams.ALPHA,
-            CurveParams.BETA,
-            CurveParams.MAX,
-            Polygon.EURS_EPSILON,
-            CurveParams.LAMBDA
-        );
+        CurveFactoryV2.CurveInfo memory cadcMaticCurveInfo = CurveFactoryV2
+            .CurveInfo(
+                "dfx-cadc-matic-v2.5",
+                "dfx-cadc-matic-v2.5",
+                Polygon.CADC,
+                WMATIC,
+                CurveParams.BASE_WEIGHT,
+                CurveParams.QUOTE_WEIGHT,
+                cadOracle,
+                wethOracle,
+                CurveParams.ALPHA,
+                CurveParams.BETA,
+                CurveParams.MAX,
+                Polygon.EURS_EPSILON,
+                CurveParams.LAMBDA
+            );
 
-        CurveInfo memory cadcEursCurveInfo = CurveInfo(
-            "dfx-cadc-eurs-v2.5",
-            "dfx-cadc-eurs-v2.5",
-            Polygon.CADC,
-            Polygon.EURS,
-            CurveParams.BASE_WEIGHT,
-            CurveParams.QUOTE_WEIGHT,
-            cadOracle,
-            eurOracle,
-            CurveParams.ALPHA,
-            CurveParams.BETA,
-            CurveParams.MAX,
-            Polygon.XSGD_EPSILON,
-            CurveParams.LAMBDA
-        );
+        CurveFactoryV2.CurveInfo memory cadcEursCurveInfo = CurveFactoryV2
+            .CurveInfo(
+                "dfx-cadc-eurs-v2.5",
+                "dfx-cadc-eurs-v2.5",
+                Polygon.CADC,
+                Polygon.EURS,
+                CurveParams.BASE_WEIGHT,
+                CurveParams.QUOTE_WEIGHT,
+                cadOracle,
+                eurOracle,
+                CurveParams.ALPHA,
+                CurveParams.BETA,
+                CurveParams.MAX,
+                Polygon.XSGD_EPSILON,
+                CurveParams.LAMBDA
+            );
 
-        CurveInfo memory sgdLinkCurveInfo = CurveInfo(
-            "dfx-xsgd-link-v2",
-            "dfx-xsgd-link-v2",
-            Polygon.XSGD,
-            LINK,
-            CurveParams.BASE_WEIGHT,
-            CurveParams.QUOTE_WEIGHT,
-            sgdOracle,
-            linkOracle,
-            CurveParams.ALPHA,
-            CurveParams.BETA,
-            CurveParams.MAX,
-            Polygon.NZDS_EPSILON,
-            CurveParams.LAMBDA
-        );
+        CurveFactoryV2.CurveInfo memory sgdLinkCurveInfo = CurveFactoryV2
+            .CurveInfo(
+                "dfx-xsgd-link-v2",
+                "dfx-xsgd-link-v2",
+                Polygon.XSGD,
+                LINK,
+                CurveParams.BASE_WEIGHT,
+                CurveParams.QUOTE_WEIGHT,
+                sgdOracle,
+                linkOracle,
+                CurveParams.ALPHA,
+                CurveParams.BETA,
+                CurveParams.MAX,
+                Polygon.NZDS_EPSILON,
+                CurveParams.LAMBDA
+            );
 
         // Deploy all new Curves
         deployedCurveFactory.newCurve(cadcUsdcCurveInfo);
