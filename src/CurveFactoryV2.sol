@@ -43,7 +43,7 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
 
     mapping(bytes32 => address) public curves;
 
-    mapping(address => bool
+    mapping(address => bool) public isDFXCurve;
 
     address public immutable wETH;
 
