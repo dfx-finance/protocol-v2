@@ -169,12 +169,9 @@ contract AssimilatorV2 is IAssimilator {
 
         // Rate is in pair token decimals
         uint256 _rate = _pairTokenBal.mul(1e6).div(_tokenBal);
-        // round up
-        amount_ = Math.mulDiv(
+        amount_ = Math.ceilDiv(
             _amount.mulu(10 ** tokenDecimals * 1e6 * 1e18),
-            1,
-            _rate * 1e18,
-            Math.Rounding.Up
+            _rate * 1e18
         );
         if (address(token) == address(pairToken)) {
             require(
@@ -245,13 +242,13 @@ contract AssimilatorV2 is IAssimilator {
         int128 _amount,
         bool _toETH
     ) external payable override returns (uint256 amount_) {
-        require(_amount > 0, "zero amount!");
         uint256 _rate = getRate();
 
         amount_ = Math.ceilDiv(
             _amount.mulu(10 ** (tokenDecimals + oracleDecimals + 18)),
             _rate * 1e18
         );
+        require(amount_ > 0, "zero amount!");
         if (_toETH) {
             IWETH(wETH).withdraw(amount_);
             (bool success, ) = payable(_dst).call{value: amount_}("");
@@ -284,21 +281,37 @@ contract AssimilatorV2 is IAssimilator {
         if (_tokenBal <= 0) return 0;
 
         // 1e2
-        _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
+        // _tokenBal = _tokenBal.mul(1e18).div(_baseWeight);
 
-        // 1e6
-        uint256 _pairTokenBal = pairToken.balanceOf(_addr).mul(1e18).div(
-            _pairTokenWeight
+        _tokenBal = _tokenBal.mul(10 ** (18 + pairTokenDecimals)).div(
+            _baseWeight
         );
 
-        // Rate is in 1e6
-        uint256 _rate = _pairTokenBal.mul(10 ** tokenDecimals).div(_tokenBal);
+        // 1e6
+        // uint256 _pairTokenBal = pairToken.balanceOf(_addr).mul(1e18).div(
+        //     _pairTokenWeight
+        // );
 
-        amount_ = Math.mulDiv(
-            _amount.mulu(10 ** (tokenDecimals + pairTokenDecimals)),
-            1,
-            _rate,
-            Math.Rounding.Up
+        uint256 _pairTokenBal = pairToken
+            .balanceOf(_addr)
+            .mul(10 ** (18 + tokenDecimals))
+            .div(_pairTokenWeight);
+
+        // Rate is in 1e6
+        // uint256 _rate = _pairTokenBal.mul(10 ** tokenDecimals).div(_tokenBal);
+
+        // Rate is in pair token decimals
+        uint256 _rate = _pairTokenBal.mul(1e6).div(_tokenBal);
+
+        // amount_ = Math.mulDiv(
+        //     _amount.mulu(10 ** (tokenDecimals + pairTokenDecimals)),
+        //     1,
+        //     _rate,
+        //     Math.Rounding.Up
+        // );
+        amount_ = Math.ceilDiv(
+            _amount.mulu(10 ** tokenDecimals * 1e6 * 1e18),
+            _rate * 1e18
         );
     }
 
@@ -376,11 +389,9 @@ contract AssimilatorV2 is IAssimilator {
     ) external payable override {
         uint256 _rate = getRate();
         if (_amount < 0) _amount = -(_amount);
-        // improve precision
-        uint256 amount = Math.ceilDiv(
-            _amount.mulu(10 ** (tokenDecimals + oracleDecimals + 18)),
-            _rate * 1e18
-        );
+        uint256 amount = _amount.mulu(
+            10 ** (tokenDecimals + oracleDecimals + 18)
+        ) / (_rate * 1e18);
         token.safeTransfer(_treasury, amount);
     }
 }

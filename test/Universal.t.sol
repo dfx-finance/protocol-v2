@@ -131,6 +131,7 @@ contract V25Test is Test {
         cheats.startPrank(address(accounts[2]));
         // deploy a new config contract
         config = new Config(50000, address(accounts[2]));
+        console.log("config : ", address(config));
         // deploy new assimilator factory
         assimFactory = new AssimilatorFactory(address(config));
         // deploy new curve factory
@@ -139,11 +140,15 @@ contract V25Test is Test {
             address(config),
             Polygon.WMATIC
         );
+        console.log("curveFactory : ", address(curveFactory));
         assimFactory.setCurveFactory(address(curveFactory));
+        console.log("assimilatorFactory : ", address(assimFactory));
         // deploy Zap
         zap = new Zap(address(curveFactory));
+        console.log("zap : ", address(zap));
         // now deploy router
         router = new Router(address(curveFactory));
+        console.log("router : ", address(router));
         cheats.stopPrank();
         // now deploy curves
         eurocUsdcCurve = createCurve(
@@ -153,6 +158,7 @@ contract V25Test is Test {
             address(eurocOracle),
             address(usdcOracle)
         );
+        console.log("euroc-usdc curve : ", address(eurocUsdcCurve));
         wethUsdcCurve = createCurve(
             "weth-usdc",
             address(weth),
@@ -160,6 +166,7 @@ contract V25Test is Test {
             address(wethOracle),
             address(usdcOracle)
         );
+        console.log("weth-usdc curve : ", address(wethUsdcCurve));
         wethLinkCurve = createCurve(
             "weth-link",
             address(weth),
@@ -167,6 +174,7 @@ contract V25Test is Test {
             address(wethOracle),
             address(linkOracle)
         );
+        console.log("weth-link curve : ", address(wethLinkCurve));
 
         FoT_1 = new MockFoTERC20("FoT1", "FoT1", address(FAUCET));
         FoT_2 = new MockFoTERC20("FoT2", "FoT2", address(FAUCET));
@@ -181,6 +189,7 @@ contract V25Test is Test {
             address(fot1Oracle),
             address(usdcOracle)
         );
+        console.log("fot-1-usdc curve : ", address(fot1UsdcCurve));
 
         fot2UsdcCurve = createCurve(
             "fot-2-usdc",
@@ -189,6 +198,7 @@ contract V25Test is Test {
             address(fot2Oracle),
             address(usdcOracle)
         );
+        console.log("fot-2-usdc : ", address(fot2UsdcCurve));
     }
 
     // test ownership

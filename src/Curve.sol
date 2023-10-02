@@ -543,7 +543,8 @@ contract Curve is Storage, NoDelegateCall, ICurve {
         _swapData._originAmount = _originAmount;
         _swapData._recipient = msg.sender;
         _swapData._curveFactory = curveFactory;
-        targetAmount_ = Swaps.originSwap(curve, _swapData, false);
+        Swaps.originSwap(curve, _swapData, false);
+        targetAmount_ = IERC20(_target).balanceOf(address(this));
 
         require(
             targetAmount_ >= _minTargetAmount,

@@ -157,13 +157,14 @@ contract Router {
             );
             uint256 originBalance = IERC20(_path[i]).balanceOf(address(this));
             IERC20(_path[i]).safeApprove(curve, originBalance);
-            targetAmount_ = Curve(curve).originSwap(
+            Curve(curve).originSwap(
                 _path[i],
                 _path[i + 1],
                 originBalance,
                 0,
                 _deadline
             );
+            targetAmount_ = IERC20(target).balanceOf(address(this));
         }
         require(
             targetAmount_ >= _minTargetAmount,
