@@ -17,7 +17,7 @@ import "../src/Router.sol";
 import "./Addresses.sol";
 import "../src/interfaces/IERC20Detailed.sol";
 
-// POLYGON DEPLOYMENT
+// Arbitrum DEPLOYMENT
 contract ContractScript is Script {
     function run() external {
         address OWNER = 0x1246E96b7BC94107aa10a08C3CE3aEcc8E19217B;
@@ -34,11 +34,10 @@ contract ContractScript is Script {
         );
 
         // Deploy CurveFactoryV2
-        address wETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
         CurveFactoryV2 deployedCurveFactory = new CurveFactoryV2(
             address(deployedAssimFactory),
             address(config),
-            wETH
+            Arbitrum.WETH
         );
 
         // Attach CurveFactoryV2 to Assimilator
@@ -48,14 +47,13 @@ contract ContractScript is Script {
 
         IOracle usdOracle = IOracle(Arbitrum.CHAINLINK_USDC_USD);
         IOracle cadOracle = IOracle(Arbitrum.CHAINLINK_CADC_USD);
-        IOracle crvOracle = IOracle(Arbitrum.CHAINLINK_CRV_USD);
-        IOracle dodoOracle = IOracle(Arbitrum.CHAINLINK_DODO_USD);
+        IOracle gyenOracle = IOracle(Arbitrum.CHAINLINK_GYEN_USD);
 
         // usdc-cadc curve info
         CurveFactoryV2.CurveInfo memory cadcUsdcCurveInfo = CurveFactoryV2
             .CurveInfo(
-                "dfx-cadc-usdc-v2.5",
-                "dfx-cadc-usdc-v2.5",
+                "dfx-cadc-usdc-v3",
+                "dfx-cadc-usdc-v3",
                 Arbitrum.CADC,
                 Arbitrum.USDC,
                 CurveParams.BASE_WEIGHT,
@@ -65,50 +63,31 @@ contract ContractScript is Script {
                 CurveParams.ALPHA,
                 CurveParams.BETA,
                 CurveParams.MAX,
-                Arbitrum.EPSILON,
+                Arbitrum.CADC_EPSILON,
                 CurveParams.LAMBDA
             );
 
         // cadc-crv curve info
-        CurveFactoryV2.CurveInfo memory cadcCrvCurveInfo = CurveFactoryV2
+        CurveFactoryV2.CurveInfo memory gyenUsdcCurveInfo = CurveFactoryV2
             .CurveInfo(
-                "dfx-cadc-crv-v2.5",
-                "dfx-cadc-crv-v2.5",
+                "dfx-gyen-usdc-v3",
+                "dfx-gyen-usdc-v3",
                 Arbitrum.CADC,
-                Arbitrum.CRV,
+                Arbitrum.GYEN,
                 CurveParams.BASE_WEIGHT,
                 CurveParams.QUOTE_WEIGHT,
                 cadOracle,
-                crvOracle,
+                gyenOracle,
                 CurveParams.ALPHA,
                 CurveParams.BETA,
                 CurveParams.MAX,
-                Arbitrum.EPSILON,
-                CurveParams.LAMBDA
-            );
-
-        // crv-dodo curve info
-        CurveFactoryV2.CurveInfo memory crvDodoCurveInfo = CurveFactoryV2
-            .CurveInfo(
-                "dfx-dodo-crv-v2.5",
-                "dfx-dodo-crv-v2.5",
-                Arbitrum.DODO,
-                Arbitrum.CRV,
-                CurveParams.BASE_WEIGHT,
-                CurveParams.QUOTE_WEIGHT,
-                dodoOracle,
-                crvOracle,
-                CurveParams.ALPHA,
-                CurveParams.BETA,
-                CurveParams.MAX,
-                Arbitrum.EPSILON,
+                Arbitrum.GYEN_EPSILON,
                 CurveParams.LAMBDA
             );
 
         // Deploy all new Curves
         deployedCurveFactory.newCurve(cadcUsdcCurveInfo);
-        deployedCurveFactory.newCurve(cadcCrvCurveInfo);
-        deployedCurveFactory.newCurve(crvDodoCurveInfo);
+        deployedCurveFactory.newCurve(gyenUsdcCurveInfo);
         Zap zap = new Zap(address(deployedCurveFactory));
         Router router = new Router(address(deployedCurveFactory));
         vm.stopBroadcast();
