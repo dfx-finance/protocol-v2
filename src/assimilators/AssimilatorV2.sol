@@ -127,13 +127,13 @@ contract AssimilatorV2 is IAssimilator {
     function intakeNumeraire(
         int128 _amount
     ) external payable override returns (uint256 amount_) {
-        require(_amount > 0, "zero amount!");
         uint256 _rate = getRate();
         // improve precision
         amount_ = Math.ceilDiv(
             _amount.mulu(10 ** (tokenDecimals + oracleDecimals + 18)),
             _rate * 1e18
         );
+        require(amount_ > 0, "zero amount!");
         uint256 balanceBefore = token.balanceOf(address(this));
 
         token.safeTransferFrom(msg.sender, address(this), amount_);
@@ -153,7 +153,6 @@ contract AssimilatorV2 is IAssimilator {
         address _addr,
         int128 _amount
     ) external payable override returns (uint256 amount_) {
-        require(_amount > 0, "zero amount!");
         uint256 _tokenBal = token.balanceOf(_addr);
 
         if (_tokenBal <= 0) return 0;
@@ -173,6 +172,7 @@ contract AssimilatorV2 is IAssimilator {
             _amount.mulu(10 ** tokenDecimals * 1e6 * 1e18),
             _rate * 1e18
         );
+        require(amount_ > 0, "zero amount!");
         if (address(token) == address(pairToken)) {
             require(
                 amount_ >= _minpairTokenAmount &&
@@ -212,12 +212,11 @@ contract AssimilatorV2 is IAssimilator {
 
         uint256 _balance = token.balanceOf(address(this));
 
-        amount_ = ((_amount * _rate) / 10 ** oracleDecimals).divu(
-            10 ** tokenDecimals
+        amount_ = ((_amount * _rate)).divu(
+            10 ** (tokenDecimals + oracleDecimals)
         );
-
-        balance_ = ((_balance * _rate) / 10 ** oracleDecimals).divu(
-            10 ** tokenDecimals
+        balance_ = ((_balance * _rate)).divu(
+            10 ** (tokenDecimals + oracleDecimals)
         );
     }
 
@@ -231,8 +230,8 @@ contract AssimilatorV2 is IAssimilator {
 
         token.safeTransfer(_dst, _amount);
 
-        amount_ = ((_amount * _rate) / 10 ** oracleDecimals).divu(
-            10 ** tokenDecimals
+        amount_ = ((_amount * _rate)).divu(
+            10 ** (tokenDecimals + oracleDecimals)
         );
     }
 

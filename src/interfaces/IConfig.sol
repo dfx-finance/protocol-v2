@@ -11,22 +11,6 @@ interface IConfig {
 
     function setGlobalFrozen(bool) external;
 
-    function toggleGlobalGuarded() external;
-
-    function setPoolGuarded(address, bool) external;
-
-    function setGlobalGuardAmount(uint256) external;
-
-    function setPoolCap(address, uint256) external;
-
-    function setPoolGuardAmount(address, uint256) external;
-
-    function isPoolGuarded(address) external view returns (bool);
-
-    function getPoolGuardAmount(address) external view returns (uint256);
-
-    function getPoolCap(address) external view returns (uint256);
-
     function updateProtocolTreasury(address) external;
 
     function updateProtocolFee(int128) external;

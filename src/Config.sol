@@ -28,13 +28,6 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
     // Global curve operational state
     bool public globalFrozen = false;
 
-    bool public globalGuarded = false;
-    mapping(address => bool) public poolGuarded;
-
-    uint256 public globalGuardAmt;
-    mapping(address => uint256) public poolGuardAmt;
-    mapping(address => uint256) public poolCapAmt;
-
     // mapping quote currencies
     mapping(uint256 => QuoteCurrency) public quoteCurrencies;
     mapping(uint256 => bool) public isQuoteAdded;
@@ -44,11 +37,6 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
     event GlobalFrozenSet(bool isFrozen);
     event TreasuryUpdated(address indexed newTreasury);
     event ProtocolFeeUpdated(address indexed treasury, int128 indexed fee);
-    event GlobalGuardSet(bool isGuarded);
-    event GlobalGuardAmountSet(uint256 amount);
-    event PoolGuardSet(address indexed pool, bool isGuarded);
-    event PoolGuardAmountSet(address indexed pool, uint256 guardAmount);
-    event PoolCapSet(address indexed pool, uint256 cap);
     event NewQuoteAdded(
         address indexed quote,
         uint256 quoteDecimal,
@@ -96,72 +84,6 @@ contract Config is Ownable, IConfig, ReentrancyGuard {
         emit GlobalFrozenSet(_toFreezeOrNotToFreeze);
 
         globalFrozen = _toFreezeOrNotToFreeze;
-    }
-
-    function toggleGlobalGuarded()
-        external
-        virtual
-        override
-        onlyOwner
-        nonReentrant
-    {
-        globalGuarded = !globalGuarded;
-        emit GlobalGuardSet(globalGuarded);
-    }
-
-    function setPoolGuarded(
-        address pool,
-        bool guarded
-    ) external virtual override onlyOwner nonReentrant {
-        poolGuarded[pool] = guarded;
-        emit PoolGuardSet(pool, guarded);
-    }
-
-    function setGlobalGuardAmount(
-        uint256 amount
-    ) external virtual override onlyOwner nonReentrant {
-        globalGuardAmt = amount - 1e6;
-        emit GlobalGuardAmountSet(globalGuardAmt);
-    }
-
-    function setPoolCap(
-        address pool,
-        uint256 cap
-    ) external virtual override nonReentrant onlyOwner {
-        poolCapAmt[pool] = cap;
-        emit PoolCapSet(pool, cap);
-    }
-
-    function setPoolGuardAmount(
-        address pool,
-        uint256 amount
-    ) external virtual override nonReentrant onlyOwner {
-        poolGuardAmt[pool] = amount - 1e6;
-        emit PoolGuardAmountSet(pool, amount);
-    }
-
-    function isPoolGuarded(address pool) external view override returns (bool) {
-        bool _poolGuarded = poolGuarded[pool];
-        if (!_poolGuarded) {
-            return globalGuarded;
-        } else {
-            return true;
-        }
-    }
-
-    function getPoolGuardAmount(
-        address pool
-    ) external view override returns (uint256) {
-        uint256 _poolGuardAmt = poolGuardAmt[pool];
-        if (_poolGuardAmt == 0) {
-            return globalGuardAmt;
-        } else {
-            return _poolGuardAmt;
-        }
-    }
-
-    function getPoolCap(address pool) external view override returns (uint256) {
-        return poolCapAmt[pool];
     }
 
     function updateProtocolTreasury(
