@@ -57,7 +57,10 @@ library Swaps {
             Storage.Assimilator memory _o,
             Storage.Assimilator memory _t
         ) = getOriginAndTarget(curve, _swapData._origin, _swapData._target);
-
+        require(
+            _swapData._origin != _swapData._target,
+            "swap/same-origin-target"
+        );
         if (_o.ix == _t.ix)
             return
                 Assimilators.outputNumeraire(
@@ -176,6 +179,10 @@ library Swaps {
             Storage.Assimilator memory _o,
             Storage.Assimilator memory _t
         ) = getOriginAndTarget(curve, _swapData._origin, _swapData._target);
+        require(
+            _swapData._origin != _swapData._target,
+            "swap/same-origin-target"
+        );
 
         if (_o.ix == _t.ix)
             return
