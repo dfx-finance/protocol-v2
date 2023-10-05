@@ -87,7 +87,6 @@ library ProportionalLiquidity {
             "Proportional Liquidity/can't mint negative amount"
         );
         curves_ = _newShells.mulu(1e18);
-        curves_ = curves_.div(1e17).mul(1e17);
         mint(curve, msg.sender, curves_);
 
         return (curves_, deposits_);
@@ -253,7 +252,6 @@ library ProportionalLiquidity {
             balances_[i] = _bal;
             grossLiquidity_ += _bal;
         }
-
         return (grossLiquidity_, balances_);
     }
 

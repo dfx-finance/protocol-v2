@@ -26,7 +26,6 @@ import "./interfaces/ICurveFactory.sol";
 import "./interfaces/IAssimilatorFactory.sol";
 import "./interfaces/IERC20Detailed.sol";
 import "./interfaces/IConfig.sol";
-import "./Structs.sol";
 
 contract CurveFactoryV2 is ICurveFactory, Ownable {
     using Address for address;
@@ -46,30 +45,34 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
 
     address public immutable wETH;
 
+    struct CurveIDPair {
+        bytes32 curveId;
+        bytes32 curveIdReversed;
+    }
+
+    struct CurveInfo {
+        string _name;
+        string _symbol;
+        address _baseCurrency;
+        address _quoteCurrency;
+        uint256 _baseWeight;
+        uint256 _quoteWeight;
+        IOracle _baseOracle;
+        IOracle _quoteOracle;
+        uint256 _alpha;
+        uint256 _beta;
+        uint256 _feeAtHalt;
+        uint256 _epsilon;
+        uint256 _lambda;
+    }
+
     constructor(address _assimFactory, address _config, address _weth) {
-        require(
-            _assimFactory.isContract(),
-            "CurveFactory/invalid-assimFactory"
-        );
+        require(_assimFactory.isContract(), "invalid-assimFactory");
         assimilatorFactory = IAssimilatorFactory(_assimFactory);
-        require(_config.isContract(), "CurveFactory/invalid-config");
+        require(_config.isContract(), "invalid-config");
         config = IConfig(_config);
         wETH = _weth;
     }
-
-    // function getGlobalFrozenState()
-    //     external
-    //     view
-    //     virtual
-    //     override
-    //     returns (bool)
-    // {
-    //     return config.getGlobalFrozenState();
-    // }
-
-    // function getFlashableState() external view virtual override returns (bool) {
-    //     return config.getFlashableState();
-    // }
 
     function getProtocolFee() external view virtual override returns (int128) {
         return config.getProtocolFee();
@@ -96,15 +99,15 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
     function newCurve(CurveInfo memory _info) public returns (Curve) {
         require(
             _info._quoteCurrency != address(0),
-            "CurveFactory/quote-currency-zero-address"
+            "quote-currency-zero-address"
         );
         require(
             _info._baseCurrency != _info._quoteCurrency,
-            "CurveFactory/quote-base-currencies-same"
+            "quote-base-currencies-same"
         );
         require(
             (_info._baseWeight + _info._quoteWeight) == 1e18,
-            "CurveFactory/invalid-weights"
+            "invalid-weights"
         );
 
         uint256 quoteDec = IERC20Detailed(_info._quoteCurrency).decimals();
@@ -117,7 +120,7 @@ contract CurveFactoryV2 is ICurveFactory, Ownable {
         if (
             curves[idPair.curveId] != address(0) ||
             curves[idPair.curveIdReversed] != address(0)
-        ) revert("CurveFactory/pair-exists");
+        ) revert("pair-exists");
         AssimilatorV2 _baseAssim;
         _baseAssim = (
             assimilatorFactory.getAssimilator(

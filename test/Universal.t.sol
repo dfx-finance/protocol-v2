@@ -24,8 +24,10 @@ import "./lib/CurveParams.sol";
 import "./lib/MockChainlinkOracle.sol";
 import "./lib/MockOracleFactory.sol";
 import "./lib/MockToken.sol";
+import "./lib/FeeOnTransfer.sol";
 
 import "./utils/Utils.sol";
+
 import "forge-std/Test.sol";
 import "forge-std/StdAssertions.sol";
 
@@ -44,17 +46,32 @@ contract V25Test is Test {
     IERC20Detailed weth;
     IERC20Detailed link;
 
+    // FoT tokens
+    IERC20Detailed fot1;
+    IERC20Detailed fot2;
+
+    MockFoTERC20 FoT_1;
+    MockFoTERC20 FoT_2;
+
     // oracles
     IOracle eurocOracle;
     IOracle usdcOracle;
     IOracle wethOracle;
     IOracle linkOracle;
 
+    // FoT oracles
+    IOracle fot1Oracle; // use bnb's
+    IOracle fot2Oracle; // use mana's
+
     // prices
     uint256 eurocPrice;
     uint256 usdcPrice;
     uint256 wethPrice;
     uint256 linkPrice;
+
+    // FoT prices
+    uint256 fot1Price;
+    uint256 fot2Price;
 
     // decimals
     mapping(address => uint256) decimals;
@@ -63,6 +80,10 @@ contract V25Test is Test {
     Curve public eurocUsdcCurve;
     Curve public wethUsdcCurve;
     Curve public wethLinkCurve;
+
+    // fot curves
+    Curve public fot1UsdcCurve;
+    Curve public fot2UsdcCurve;
 
     Config config;
     CurveFactoryV2 curveFactory;
@@ -99,9 +120,18 @@ contract V25Test is Test {
         linkPrice = uint256(linkOracle.latestAnswer());
         console.log("Link price is ", linkPrice);
 
+        fot1Oracle = IOracle(Polygon.CHAINLINK_MANA);
+        fot1Price = uint256(fot1Oracle.latestAnswer());
+        console.log("MANA/FoT1 price is ", fot1Price);
+
+        fot2Oracle = IOracle(Polygon.CHAINLINK_BNB);
+        fot2Price = uint256(fot2Oracle.latestAnswer());
+        console.log("BNB/FoT2 price is ", fot2Price);
+
         cheats.startPrank(address(accounts[2]));
         // deploy a new config contract
         config = new Config(50000, address(accounts[2]));
+        console.log("config : ", address(config));
         // deploy new assimilator factory
         assimFactory = new AssimilatorFactory(address(config));
         // deploy new curve factory
@@ -110,11 +140,15 @@ contract V25Test is Test {
             address(config),
             Polygon.WMATIC
         );
+        console.log("curveFactory : ", address(curveFactory));
         assimFactory.setCurveFactory(address(curveFactory));
+        console.log("assimilatorFactory : ", address(assimFactory));
         // deploy Zap
         zap = new Zap(address(curveFactory));
+        console.log("zap : ", address(zap));
         // now deploy router
         router = new Router(address(curveFactory));
+        console.log("router : ", address(router));
         cheats.stopPrank();
         // now deploy curves
         eurocUsdcCurve = createCurve(
@@ -124,6 +158,7 @@ contract V25Test is Test {
             address(eurocOracle),
             address(usdcOracle)
         );
+        console.log("euroc-usdc curve : ", address(eurocUsdcCurve));
         wethUsdcCurve = createCurve(
             "weth-usdc",
             address(weth),
@@ -131,6 +166,7 @@ contract V25Test is Test {
             address(wethOracle),
             address(usdcOracle)
         );
+        console.log("weth-usdc curve : ", address(wethUsdcCurve));
         wethLinkCurve = createCurve(
             "weth-link",
             address(weth),
@@ -138,6 +174,31 @@ contract V25Test is Test {
             address(wethOracle),
             address(linkOracle)
         );
+        console.log("weth-link curve : ", address(wethLinkCurve));
+
+        FoT_1 = new MockFoTERC20("FoT1", "FoT1", address(FAUCET));
+        FoT_2 = new MockFoTERC20("FoT2", "FoT2", address(FAUCET));
+
+        fot1 = IERC20Detailed(address(FoT_1));
+        fot2 = IERC20Detailed(address(FoT_2));
+
+        fot1UsdcCurve = createCurve(
+            "fot-1-usdc",
+            address(fot1),
+            address(usdc),
+            address(fot1Oracle),
+            address(usdcOracle)
+        );
+        console.log("fot-1-usdc curve : ", address(fot1UsdcCurve));
+
+        fot2UsdcCurve = createCurve(
+            "fot-2-usdc",
+            address(fot2),
+            address(usdc),
+            address(fot2Oracle),
+            address(usdcOracle)
+        );
+        console.log("fot-2-usdc : ", address(fot2UsdcCurve));
     }
 
     // test ownership
@@ -667,6 +728,68 @@ contract V25Test is Test {
         assertApproxEqAbs(eurocInUsd, linkInUsd, eurocInUsd / 100);
     }
 
+    // test routing EURS -> Link (eurs -> usdc -> weth -> link)
+    function testRoutingFeeOnTransfer() public {
+        // mint all tokens to depositor
+        cheats.startPrank(FAUCET);
+        payable(address(accounts[0])).call{value: 5000 ether}("");
+        cheats.stopPrank();
+        // mint eurs to the trader
+        deal(
+            address(euroc),
+            address(accounts[1]),
+            10000 * decimals[address(euroc)]
+        );
+        uint256 u_e_bal_0 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_l_bal_0 = link.balanceOf(address(accounts[1]));
+        // now approve router to spend euroc
+        cheats.startPrank(address(accounts[1]));
+        euroc.safeApprove(address(router), type(uint256).max);
+        cheats.stopPrank();
+        // lp depositor provide lps to pools
+        cheats.startPrank(address(accounts[0]));
+        eurocUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethUsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        wethLinkCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        // init a path
+        address[] memory _path = new address[](4);
+        _path[0] = address(euroc);
+        _path[1] = address(usdc);
+        _path[2] = address(weth);
+        _path[3] = address(link);
+        // now swap using router
+        cheats.startPrank(address(accounts[1]));
+        router.originSwap(u_e_bal_0, 0, _path, block.timestamp + 60);
+        cheats.stopPrank();
+        uint256 u_e_bal_1 = euroc.balanceOf(address(accounts[1]));
+        uint256 u_l_bal_1 = link.balanceOf(address(accounts[1]));
+        uint256 eurocInUsd = (u_e_bal_0 * eurocPrice) / 1e8;
+        uint256 linkInUsd = (u_l_bal_1 * linkPrice) / 1e8 / (10 ** (18 - 2));
+        assertApproxEqAbs(eurocInUsd, linkInUsd, eurocInUsd / 100);
+    }
+
     // test routing EURS -> WETH (eurs -> usdc -> weth -> eth)
     function testRoutingToETH() public {
         // mint all tokens to depositor
@@ -853,6 +976,112 @@ contract V25Test is Test {
         assertApproxEqAbs(eurocInUsd, linkInUsd, eurocInUsd / 100);
     }
 
+    /*
+     * FoT
+     */
+
+    // test euroc-usdc curve
+    function testFoT1UsdcCurve() public {
+        FoT_1.excludeFee(address(fot1UsdcCurve));
+        uint256 amt = 10000;
+        // mint tokens to trader
+        deal(
+            address(fot1),
+            address(accounts[1]),
+            amt * decimals[address(fot1)]
+        );
+        deal(
+            address(usdc),
+            address(accounts[1]),
+            amt * decimals[address(usdc)]
+        );
+        cheats.startPrank(address(accounts[1]));
+        fot1.approve(address(fot1UsdcCurve), type(uint256).max);
+        usdc.safeApprove(address(fot1UsdcCurve), type(uint256).max);
+        cheats.stopPrank();
+        // deposit from lp
+        cheats.startPrank(address(accounts[0]));
+        fot1UsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        // now trade
+        cheats.startPrank(address(accounts[1]));
+        uint256 e_bal_0 = fot1.balanceOf(address(accounts[1]));
+        uint256 u_bal_0 = usdc.balanceOf(address(accounts[1]));
+        fot1UsdcCurve.originSwap(
+            address(fot1),
+            address(usdc),
+            e_bal_0,
+            0,
+            block.timestamp + 60
+        );
+        uint256 e_bal_1 = fot1.balanceOf(address(accounts[1]));
+        uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
+        cheats.stopPrank();
+        assertApproxEqAbs(
+            u_bal_1 - u_bal_0,
+            ((e_bal_0 / 1e12) * fot1Price) / 1e8,
+            (u_bal_1 - u_bal_0) / 100
+        );
+    }
+
+    // test euroc-usdc curve
+    function testFoT1UsdcCurveByRouter() public {
+        FoT_1.excludeFee(address(fot1UsdcCurve));
+        FoT_1.excludeFee(address(router));
+        uint256 amt = 10000;
+        // mint tokens to trader
+        deal(
+            address(fot1),
+            address(accounts[1]),
+            amt * decimals[address(fot1)]
+        );
+        deal(
+            address(usdc),
+            address(accounts[1]),
+            amt * decimals[address(usdc)]
+        );
+        cheats.startPrank(address(accounts[1]));
+        fot1.approve(address(router), type(uint256).max);
+        usdc.safeApprove(address(router), type(uint256).max);
+        cheats.stopPrank();
+        // deposit from lp
+        cheats.startPrank(address(accounts[0]));
+        fot1UsdcCurve.deposit(
+            100000 * 1e18,
+            0,
+            0,
+            type(uint256).max,
+            type(uint256).max,
+            block.timestamp + 60
+        );
+        cheats.stopPrank();
+        // now trade
+        cheats.startPrank(address(accounts[1]));
+        uint256 e_bal_0 = fot1.balanceOf(address(accounts[1]));
+        uint256 u_bal_0 = usdc.balanceOf(address(accounts[1]));
+        address[] memory _path = new address[](2);
+        _path[0] = address(fot1);
+        _path[1] = address(usdc);
+        router.originSwap(e_bal_0, 0, _path, block.timestamp + 60);
+        uint256 e_bal_1 = fot1.balanceOf(address(accounts[1]));
+        uint256 u_bal_1 = usdc.balanceOf(address(accounts[1]));
+        cheats.stopPrank();
+        console.logString("treasury fee balance");
+        console.log(fot1.balanceOf(FAUCET));
+        assertApproxEqAbs(
+            u_bal_1 - u_bal_0,
+            ((e_bal_0 / 1e12) * fot1Price) / 1e8,
+            (u_bal_1 - u_bal_0) / 100
+        );
+    }
+
     // helper
     function createCurve(
         string memory name,
@@ -862,7 +1091,7 @@ contract V25Test is Test {
         address quoteOracle
     ) public returns (Curve) {
         cheats.startPrank(address(accounts[2]));
-        CurveInfo memory curveInfo = CurveInfo(
+        CurveFactoryV2.CurveInfo memory curveInfo = CurveFactoryV2.CurveInfo(
             string(abi.encode("dfx-curve-", name)),
             string(abi.encode("lp-", name)),
             base,

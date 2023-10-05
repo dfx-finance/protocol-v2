@@ -51,7 +51,7 @@ contract AssimilatorFactory is IAssimilatorFactory {
     }
 
     constructor(address _config) {
-        require(_config.isContract(), "AssimFactory/invalid-config-address");
+        require(_config.isContract(), "config-invalid!");
         config = _config;
     }
 
@@ -60,10 +60,7 @@ contract AssimilatorFactory is IAssimilatorFactory {
     }
 
     function setCurveFactory(address _curveFactory) external onlyOwner {
-        require(
-            _curveFactory != address(0),
-            "AssimFactory/curve factory zero address!"
-        );
+        require(_curveFactory != address(0), "curve-factory-invalid!");
         curveFactory = _curveFactory;
         emit CurveFactoryUpdated(msg.sender, curveFactory);
     }
@@ -82,13 +79,10 @@ contract AssimilatorFactory is IAssimilatorFactory {
         address _token,
         uint256 _tokenDecimals
     ) external override onlyCurveFactoryOrOwner returns (AssimilatorV2) {
-        require(
-            curveFactory != address(0),
-            "AssimFactory/Curve-Factory-Not-Set"
-        );
+        require(curveFactory != address(0), "curve-factory-not-set");
         bytes32 assimilatorID = keccak256(abi.encode(_token, _quote));
         if (address(assimilators[assimilatorID]) != address(0))
-            revert("AssimilatorFactory/assimilator-already-exists");
+            revert("assimilator-already-exists");
         AssimilatorV2 assimilator = new AssimilatorV2(
             ICurveFactory(curveFactory).wETH(),
             _quote,

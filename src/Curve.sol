@@ -16,7 +16,7 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IFlashCallback.sol";
+// import "./interfaces/IFlashCallback.sol";
 import "./interfaces/IWeth.sol";
 import "./interfaces/IAssimilatorFactory.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -313,14 +313,14 @@ contract Curve is Storage, NoDelegateCall, ICurve {
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
-    event Flash(
-        address indexed from,
-        address indexed to,
-        uint256 value0,
-        uint256 value1,
-        uint256 paid0,
-        uint256 paid1
-    );
+    // event Flash(
+    //     address indexed from,
+    //     address indexed to,
+    //     uint256 value0,
+    //     uint256 value1,
+    //     uint256 paid0,
+    //     uint256 paid1
+    // );
 
     modifier onlyOwner() {
         require(
@@ -369,27 +369,6 @@ contract Curve is Storage, NoDelegateCall, ICurve {
             "Curve/frozen-globally-only-allowing-proportional-withdraw"
         );
         _;
-    }
-
-    modifier isDepositable(address pool, uint256 deposits) {
-        {
-            uint256 poolCap = config.getPoolCap(pool);
-            uint256 supply = totalSupply();
-            require(
-                poolCap == 0 || supply.add(deposits) <= poolCap,
-                "curve/exceeds pool cap"
-            );
-        }
-        if (!config.isPoolGuarded(pool)) {
-            _;
-        } else {
-            _;
-            uint256 poolGuardAmt = config.getPoolGuardAmount(pool);
-            require(
-                curve.balances[msg.sender] <= poolGuardAmt,
-                "curve/deposit-exceeds-guard-amt"
-            );
-        }
     }
 
     constructor(
@@ -543,7 +522,10 @@ contract Curve is Storage, NoDelegateCall, ICurve {
         _swapData._originAmount = _originAmount;
         _swapData._recipient = msg.sender;
         _swapData._curveFactory = curveFactory;
-        targetAmount_ = Swaps.originSwap(curve, _swapData, false);
+        uint256 balanceBefore = IERC20(_target).balanceOf(_swapData._recipient);
+        Swaps.originSwap(curve, _swapData, false);
+        uint256 balanceAfter = IERC20(_target).balanceOf(_swapData._recipient);
+        targetAmount_ = balanceAfter - balanceBefore;
 
         require(
             targetAmount_ >= _minTargetAmount,
@@ -718,7 +700,6 @@ contract Curve is Storage, NoDelegateCall, ICurve {
         nonReentrant
         noDelegateCall
         isNotEmergency
-        isDepositable(address(this), _deposit)
         returns (uint256, uint256[] memory)
     {
         require(_deposit > 0, "Curve/deposit_below_zero");
@@ -754,7 +735,6 @@ contract Curve is Storage, NoDelegateCall, ICurve {
         nonReentrant
         noDelegateCall
         isNotEmergency
-        isDepositable(address(this), _deposit)
         returns (uint256, uint256[] memory)
     {
         require(_deposit > 0, "Curve/deposit_below_zero");
@@ -781,15 +761,11 @@ contract Curve is Storage, NoDelegateCall, ICurve {
         ) {
             remainder = msg.value - deposits_[1];
         } else {
-            revert("reverted here");
+            revert("Curve/Deposit ETH failed");
         }
         // now need to determine which is wETH
         if (remainder > 0) {
-            IERC20(wETH).safeTransferFrom(
-                msg.sender,
-                address(this),
-                msg.value - deposits_[0]
-            );
+            IERC20(wETH).safeTransferFrom(msg.sender, address(this), remainder);
             IWETH(wETH).withdraw(remainder);
             (bool success, ) = msg.sender.call{value: remainder}("");
             require(success, "Curve/ETH transfer failed");

@@ -34,38 +34,30 @@ contract ContractScript is Script {
         );
 
         // Deploy CurveFactoryV2
-        address wMatic = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
+        address wETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
         CurveFactoryV2 deployedCurveFactory = new CurveFactoryV2(
             address(deployedAssimFactory),
             address(config),
-            wMatic
+            wETH
         );
 
         // Attach CurveFactoryV2 to Assimilator
         deployedAssimFactory.setCurveFactory(address(deployedCurveFactory));
 
-        // deploy usdc-cadc, cadc-wmatic, cadc-eurs, sgd-link
+        // deploy usdc-cadc, cadc-crv, crv-dodo
 
-        IOracle usdOracle = IOracle(Polygon.CHAINLINK_USDC_USD);
-        IOracle cadOracle = IOracle(Polygon.CHAINLINK_CAD_USD);
-        IOracle eurOracle = IOracle(Polygon.CHAINLINK_EUR_USD);
-        IOracle sgdOracle = IOracle(Polygon.CHAINLINK_SGD_USD);
-        IOracle linkOracle = IOracle(
-            0xd9FFdb71EbE7496cC440152d43986Aae0AB76665
-        );
-        IOracle wethOracle = IOracle(
-            0xAB594600376Ec9fD91F8e885dADF0CE036862dE0
-        );
+        IOracle usdOracle = IOracle(Arbitrum.CHAINLINK_USDC_USD);
+        IOracle cadOracle = IOracle(Arbitrum.CHAINLINK_CADC_USD);
+        IOracle crvOracle = IOracle(Arbitrum.CHAINLINK_CRV_USD);
+        IOracle dodoOracle = IOracle(Arbitrum.CHAINLINK_DODO_USD);
 
-        address LINK = 0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39;
-        address WMATIC = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
-
+        // usdc-cadc curve info
         CurveFactoryV2.CurveInfo memory cadcUsdcCurveInfo = CurveFactoryV2
             .CurveInfo(
                 "dfx-cadc-usdc-v2.5",
                 "dfx-cadc-usdc-v2.5",
-                Polygon.CADC,
-                Polygon.USDC,
+                Arbitrum.CADC,
+                Arbitrum.USDC,
                 CurveParams.BASE_WEIGHT,
                 CurveParams.QUOTE_WEIGHT,
                 cadOracle,
@@ -73,68 +65,52 @@ contract ContractScript is Script {
                 CurveParams.ALPHA,
                 CurveParams.BETA,
                 CurveParams.MAX,
-                Polygon.CADC_EPSILON,
+                Arbitrum.EPSILON,
                 CurveParams.LAMBDA
             );
 
-        CurveFactoryV2.CurveInfo memory cadcMaticCurveInfo = CurveFactoryV2
+        // cadc-crv curve info
+        CurveFactoryV2.CurveInfo memory cadcCrvCurveInfo = CurveFactoryV2
             .CurveInfo(
-                "dfx-cadc-matic-v2.5",
-                "dfx-cadc-matic-v2.5",
-                Polygon.CADC,
-                WMATIC,
+                "dfx-cadc-crv-v2.5",
+                "dfx-cadc-crv-v2.5",
+                Arbitrum.CADC,
+                Arbitrum.CRV,
                 CurveParams.BASE_WEIGHT,
                 CurveParams.QUOTE_WEIGHT,
                 cadOracle,
-                wethOracle,
+                crvOracle,
                 CurveParams.ALPHA,
                 CurveParams.BETA,
                 CurveParams.MAX,
-                Polygon.EURS_EPSILON,
+                Arbitrum.EPSILON,
                 CurveParams.LAMBDA
             );
 
-        CurveFactoryV2.CurveInfo memory cadcEursCurveInfo = CurveFactoryV2
+        // crv-dodo curve info
+        CurveFactoryV2.CurveInfo memory crvDodoCurveInfo = CurveFactoryV2
             .CurveInfo(
-                "dfx-cadc-eurs-v2.5",
-                "dfx-cadc-eurs-v2.5",
-                Polygon.CADC,
-                Polygon.EURS,
+                "dfx-dodo-crv-v2.5",
+                "dfx-dodo-crv-v2.5",
+                Arbitrum.DODO,
+                Arbitrum.CRV,
                 CurveParams.BASE_WEIGHT,
                 CurveParams.QUOTE_WEIGHT,
-                cadOracle,
-                eurOracle,
+                dodoOracle,
+                crvOracle,
                 CurveParams.ALPHA,
                 CurveParams.BETA,
                 CurveParams.MAX,
-                Polygon.XSGD_EPSILON,
-                CurveParams.LAMBDA
-            );
-
-        CurveFactoryV2.CurveInfo memory sgdLinkCurveInfo = CurveFactoryV2
-            .CurveInfo(
-                "dfx-xsgd-link-v2",
-                "dfx-xsgd-link-v2",
-                Polygon.XSGD,
-                LINK,
-                CurveParams.BASE_WEIGHT,
-                CurveParams.QUOTE_WEIGHT,
-                sgdOracle,
-                linkOracle,
-                CurveParams.ALPHA,
-                CurveParams.BETA,
-                CurveParams.MAX,
-                Polygon.NZDS_EPSILON,
+                Arbitrum.EPSILON,
                 CurveParams.LAMBDA
             );
 
         // Deploy all new Curves
         deployedCurveFactory.newCurve(cadcUsdcCurveInfo);
-        deployedCurveFactory.newCurve(cadcMaticCurveInfo);
-        deployedCurveFactory.newCurve(cadcEursCurveInfo);
-        deployedCurveFactory.newCurve(sgdLinkCurveInfo);
+        deployedCurveFactory.newCurve(cadcCrvCurveInfo);
+        deployedCurveFactory.newCurve(crvDodoCurveInfo);
         Zap zap = new Zap(address(deployedCurveFactory));
-        Router router = new Router(0x869AD45F0051979232c99dD5d4B7B9603A5080E0);
+        Router router = new Router(address(deployedCurveFactory));
         vm.stopBroadcast();
     }
 }
